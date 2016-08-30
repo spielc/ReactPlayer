@@ -1,0 +1,28 @@
+{
+  "name": "reactplayer",
+  "version": "1.0.0",
+  "description": "HTML5 audio player using react",
+  "main": "index.js",
+  "scripts": {
+    "prepublish": "typings install",
+    "watch": "webpack --watch"
+  },
+  "author": "Christoph Spielmann",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^1.8.10",
+    "typings": "^1.3.3",
+    "source-map-loader": "^0.1.5",
+    "ts-loader": "^0.8.2",
+    "webpack": "^1.13.1"
+  },
+  "dependencies": {
+    "id3-parser": "^1.0.2",
+    "js-sha256": "^0.3.0",
+    "pouchdb": "^5.4.5",
+    "pouchdb-browser": "^5.4.5",
+    "react": "^15.2.1",
+    "react-dom": "^15.2.1",
+    "react-wavesurfer": "^0.5.2"
+  }
+}
