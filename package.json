@@ -17,10 +17,12 @@
     "webpack": "^1.13.1"
   },
   "dependencies": {
+    "griddle-react": "^0.6.1",
     "id3-parser": "^1.0.2",
     "js-sha256": "^0.3.0",
     "pouchdb": "^5.4.5",
     "pouchdb-browser": "^5.4.5",
+    "pubsub-js": "^1.5.3",
     "react": "^15.2.1",
     "react-dom": "^15.2.1",
     "react-wavesurfer": "^0.5.2"

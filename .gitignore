@@ -3,3 +3,5 @@ typings
 src/**/*.js
 dist/**/*.js
 **/*.js.map
+!typings/globals/pouchdb-core/index.d.ts
+!typings/globals/react-wavesurfer/index.d.ts

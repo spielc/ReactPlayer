@@ -1,6 +1,7 @@
 {
   "name": "ReactPlayer",
   "dependencies": {
+    "griddle-react": "registry:npm/griddle-react#0.4.0+20160413183651",
     "id3-parser": "registry:npm/id3-parser#1.0.1+20160526190936",
     "js-sha256": "registry:npm/js-sha256#0.3.0+20160427051917"
   },
@@ -13,6 +14,7 @@
     "pouchdb-browser": "registry:dt/pouchdb-browser#5.4.4+20160724064500",
     "pouchdb-core": "registry:dt/pouchdb-core#5.4.4+20160824162854",
     "promises-a-plus": "registry:dt/promises-a-plus#0.0.0+20160317120654",
+    "pubsub": "registry:dt/pubsub#1.5.2+20160317120654",
     "react": "registry:dt/react#0.14.0+20160802191555",
     "react-dom": "registry:dt/react-dom#0.14.0+20160412154040"
   }

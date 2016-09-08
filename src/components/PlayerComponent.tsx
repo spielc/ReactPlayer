@@ -1,10 +1,13 @@
 import React = require("react");
 import ReactDOM = require("react-dom");
 import WaveSurfer from "react-wavesurfer";
+
 import {PlayerState} from "../base/enums";
+import {Track} from "../base/track";
+import {Playlist} from "../base/playlist";
 
 export interface PlayerComponentProperties {
- 
+    db : PouchDB.Database<Track | Playlist>;
 }
 
 interface PlayerComponentState {

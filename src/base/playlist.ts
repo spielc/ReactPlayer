@@ -1,35 +1,22 @@
 import {Track} from "./track";
+import {DocumentType} from "./enums"
 
-type ViewFunc = (doc: Track) => void;
-
-export interface View {
-    map: string; 
+export interface Playlist {
+    _id: string;
+    Tracks: Track[];
+    DocType: DocumentType;   
 }
 
-export interface Views {
-    [name: string]: View; 
-}
+/*export class Playlist {
 
-export class Playlist {
+    private tracks: Track[];
 
-    get _id(): string {
-        return "_design/" + this.name;
+    public constructor(public _id: string) {
+        this.tracks = [];
     }
 
-    get views(): Views {
-        //var func: ViewFunc = (doc) => { emit(doc); };
-        var view: View = {
-            map: function(doc: Track | Playlist) { 
-                var emit: (data: any) => { };
-                emit(doc); 
-            }.toString()
-        };
-        var views: Views = {};
-        views[this.name] = view;
-        return views;
+    public addTrack(track: Track): void {
+        this.tracks.push(track);
     }
 
-    constructor(private name: string) {
-
-    }
-}
+}*/

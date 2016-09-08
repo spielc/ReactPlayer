@@ -7,3 +7,12 @@ export enum PlayerState {
     Forward,
     Backward
 }
+
+export enum PlayerMessageTypes {
+    
+}
+
+export enum DocumentType {
+    Track,
+    Playlist
+}
