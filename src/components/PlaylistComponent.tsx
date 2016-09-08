@@ -140,14 +140,12 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                     var track = response as Track;
                     if (track!=null) {
                         playlist.Tracks.push(track);
-                        this.props.db.put(playlist);
+                        this.props.db.put(playlist).catch((reason) => {
+                            this.addTrackToPlaylist(trackId, playlistId);
+                        });
                     }
-                }, (reason) => {
-                    this.addTrackToPlaylist(trackId, playlistId);
                 });
             }
-        }, (reason) => {
-            this.addTrackToPlaylist(trackId, playlistId);
         });
     }
 
