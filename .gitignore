@@ -5,3 +5,4 @@ dist/**/*.js
 **/*.js.map
 !typings/globals/pouchdb-core/index.d.ts
 !typings/globals/react-wavesurfer
+!typings/globals/reactable
