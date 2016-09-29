@@ -14,5 +14,6 @@ export enum PlayerMessageTypes {
 
 export enum DocumentType {
     Track,
-    Playlist
+    Playlist,
+    Setting
 }
