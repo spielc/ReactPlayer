@@ -1,10 +1,7 @@
 import {DocumentType} from "./enums"
 
-export class Setting<T> {
-
-    public DocType: DocumentType;
-
-    constructor(public _id: string, public value: T) {
-        this.DocType = DocumentType.Setting; 
-    }
+export interface Setting<T> {
+    _id: string;
+    Value: T;
+    DocType: DocumentType.Setting;  
 }

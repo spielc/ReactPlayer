@@ -26,7 +26,7 @@ declare module "react-wavesurfer" {
         //zoom: number;
         pos: number;
         //audioPeaks:
-        audioFile: string | Blob | File;
+        audioFile: string | Blob;
         options?: WaveSurferProperties;
 
         onReady?: () => void;

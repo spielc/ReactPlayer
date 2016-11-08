@@ -10,9 +10,9 @@ import PubSub = require("pubsub-js");
 
 import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
-import {DocumentType} from "../base/enums";
 import {Setting} from "../base/setting";
 import {ReactPlayerDB} from "../base/typedefs";
+import {PlayerMessageTypes, DocumentType} from "../base/enums";
 
 export interface PlaylistComponentProperties {
     db : ReactPlayerDB;
@@ -40,6 +40,7 @@ const PlaylistRow = Reactable.Tr as PlaylistRow;
 export class PlaylistComponent extends React.Component<PlaylistComponentProperties, PlaylistComponentState> {
 
     private settings: Setting<any>[];
+    private tokens: any[];
 
     constructor(props: PlaylistComponentProperties, context?: any) {
         super(props, context);
@@ -67,10 +68,18 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
         this.props.db.allDocs(settingsSelectOptions).then(response => {
             this.settings = [];
             if (response.rows.length==0) {
-                var playlistnameSetting = new Setting("PlaylistComponent.Settings.Playlistname", "All");
+                var playlistnameSetting: Setting<string> = {
+                    _id: "PlaylistComponent.Settings.Playlistname",
+                    DocType: DocumentType.Setting,
+                    Value: "All"
+                };
                 this.props.db.put(playlistnameSetting);
                 this.settings.push(playlistnameSetting);
-                var currentSongIndexSetting = new Setting("PlaylistComponent.Settings.CurrentSongIndex", 0);
+                var currentSongIndexSetting: Setting<number> = {
+                    _id: "PlaylistComponent.Settings.CurrentSongIndex",
+                    DocType: DocumentType.Setting,
+                    Value: 0
+                };
                 this.props.db.put(currentSongIndexSetting);
                 this.settings.push(currentSongIndexSetting);
             }
@@ -83,13 +92,13 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
             this.props.db.put(allPlaylist).then((res) => {
                 
             }).catch((reason) => {
-                this.props.db.get(playlistName.value).then((response) => {
+                this.props.db.get(playlistName.Value).then((response) => {
                     var list = response as Playlist;
                     if (list != null) {
                         this.setState({
                             currentPlaylist: list,
                             displayedColumns: this.state.displayedColumns,
-                            currentSongIndex: currentSongIndex.value,
+                            currentSongIndex: currentSongIndex.Value,
                             isPlaying: this.state.isPlaying
                         });
                     }
@@ -106,7 +115,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                     this.props.db.get(args.id).then((value) => {
                         switch(value.DocType) {
                             case DocumentType.Track: {
-                                this.addTrackToPlaylist(changeArgs.id, playlistName.value);
+                                this.addTrackToPlaylist(changeArgs.id, playlistName.Value);
                                 break;
                             }
                             case DocumentType.Playlist: {
@@ -114,7 +123,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                                 this.setState({
                                     currentPlaylist: playlist,
                                     displayedColumns: this.state.displayedColumns,
-                                    currentSongIndex: currentSongIndex.value,
+                                    currentSongIndex: currentSongIndex.Value,
                                     isPlaying: this.state.isPlaying
                                 });
                                 break;
@@ -125,45 +134,123 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
             });
             
         });
+        this.tokens = [];
     }
 
     private filesSelected(evt: React.FormEvent): void {
-        //ugly but necessary...
+        //ugly but necessary... 
         var rawObject = evt.currentTarget as any;
         var files = rawObject.files as FileList;
-        var startTime = new Date();
+        
         for (var i=0; i<files.length; i++) {
             var file = files[i];
             this.handleFile(file);
-        }  
+        } 
+        
     }
 
     private handleFile(file: File): void {
-        var reader = new FileReader();
-        reader.onload = (event) => { this.parseTag(event, file) };
-        reader.readAsArrayBuffer(file);
+        var promises = [this.createHash(file), this.createTag(file)];
+        Promise.all(promises).then((tracks) => {
+            if (tracks.length==2) {
+                var track1 = tracks[0];
+                var track2 = tracks[1];
+                // merge the two created track-objects
+                var resultingTrack: Track = {
+                    _id: `track_${track1._id + track2._id}`,
+                    _attachments: (track1._attachments != null) ? track1._attachments : track2._attachments,
+                    DocType: DocumentType.Track,
+                    title: track1.title + track2.title,
+                    artist: track1.artist + track2.artist,
+                    album: track1.album + track2.album,
+                    year: track1.year + track2.year,
+                    image: (track1.image != null) ? track1.image : track2.image,
+                    lyrics: track1.lyrics + track2.lyrics,
+                    comment: track1.comment + track2.comment,
+                    track: track1.track + track2.track,
+                    genre: track1.genre + track2.genre,
+                    version: (track1.version != null) ? track1.version : track2.version
+                }
+                return this.props.db.put(resultingTrack).then((response)=>{
+                    if (response.ok) {
+                        console.log(`File '${file.name}' successfully added to the database...`); 
+                    }
+                });
+            }
+        });
     }
 
-    private parseTag(ev: Event, file: File): void {
-        var fileReader=event.target as FileReader;
-        var data = fileReader.result as ArrayBuffer;
-        var dataBuffer = new Uint8Array(data);
-        ID3.parse(dataBuffer).then((tag) => {
-            var hash = sha256.sha256(dataBuffer);
-            this.createTrack(hash, tag, file);
+    private createHash(file: File): Promise<Track> {
+        var promise = new Promise<Track>((resolve, reject) => {
+            var reader = new FileReader();
+            reader.onload = (event) => { 
+                //this.parseTag(event, file)
+                var fileReader=event.target as FileReader;
+                var data = fileReader.result as ArrayBuffer;
+                var hash = sha256.sha256(data);
+                var track: Track = {
+                    _id: hash,
+                    _attachments: {
+                        attachmentId: {
+                            type: file.type,
+                            data: file
+                        },
+                    },
+                    DocType: DocumentType.Track,
+                    title: "",
+                    artist: "",
+                    album: "",
+                    year: "",
+                    image: null,
+                    lyrics: "",
+                    comment: "",
+                    track: 0,
+                    genre: "",
+                    version: null
+                };
+                resolve(track);
+            };
+            reader.readAsArrayBuffer(file);
         });
+        return promise;
+    }
+
+    private createTag(file: File): Promise<Track> {
+        var promise = new Promise<Track>((resolve, reject) => {
+            var reader = new FileReader();
+            reader.onload = (event) => {
+                var fileReader=event.target as FileReader;
+                var data = fileReader.result as ArrayBuffer;
+                var dataBuffer = new Uint8Array(data);
+                ID3.parse(dataBuffer).then((tag) => {
+                    var track: Track = {
+                        _id: "",
+                        _attachments: null,
+                        DocType: DocumentType.Track,
+                        album: tag.album,
+                        artist: tag.artist,
+                        title: tag.title,
+                        year: tag.year,
+                        image: tag.image,
+                        lyrics: tag.lyrics,
+                        comment: tag.comment,
+                        track: tag.track,
+                        genre: tag.genre,
+                        version: tag.version
+                    };
+                    resolve(track);
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        });
+        return promise;
     }
 
     private createTrack(hash: string, tag: ID3.Tag, file: File): Promise<PouchDB.Core.Response> {
         var attachmentId = `blob_${hash}`;
         var track: Track = {
             _id: hash,
-            _attachments: {
-                attachmentId: {
-                    type: file.type,
-                    data: file
-                },
-            },
+            _attachments: {},
             DocType: DocumentType.Track,
             album: tag.album,
             artist: tag.artist,
@@ -196,8 +283,30 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
         });
     }
 
-    public componentDidMount() : void {
+    private playerEvent(event: PlayerMessageTypes, data: any): void {
+        switch(event) {
+            case PlayerMessageTypes.Forward:
+                this.setState({
+                    currentPlaylist: this.state.currentPlaylist,
+                    displayedColumns: this.state.displayedColumns,
+                    currentSongIndex: this.state.currentSongIndex + 1,
+                    isPlaying: this.state.isPlaying
+                });
+                break;
+            case PlayerMessageTypes.Backward:
+                this.setState({
+                    currentPlaylist: this.state.currentPlaylist,
+                    displayedColumns: this.state.displayedColumns,
+                    currentSongIndex: this.state.currentSongIndex - 1,
+                    isPlaying: this.state.isPlaying
+                });
+                break;
+        }
+    }
 
+    public componentDidMount() : void {
+        this.tokens.push(PubSub.subscribe(PlayerMessageTypes.Forward, this.playerEvent));
+        this.tokens.push(PubSub.subscribe(PlayerMessageTypes.Backward, this.playerEvent));
     }
 
     public componentWillUnmount() : void {

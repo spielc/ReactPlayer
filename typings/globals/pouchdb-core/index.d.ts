@@ -12,7 +12,12 @@ declare namespace PouchDB {
         type DocumentKey = string;
         type RevisionId = string;
         type Availability = 'available' | 'compacted' | 'not compacted' | 'missing';
-        type Attachment = string | ArrayBuffer;
+        //type Attachment = string | ArrayBuffer;
+        interface Attachment {
+            content_type: string;
+            digest: string;
+            data: string;
+        }
         type Encodable = { [propertyName: string]: any };
         type Since = 'now' | number;
         type Timeout = boolean | number;
