@@ -66,7 +66,6 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
     }
 
     public render(): JSX.Element {
-        console.log(this.state.currentIndex);
         return (
             <div>
                 <div hidden={(this.state.currentIndex % 3) != 0}>
