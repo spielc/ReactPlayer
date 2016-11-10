@@ -20,6 +20,11 @@ interface PlayerComponentState {
     currentVolume: number;
 }
 
+interface WaveSurferEventParams {
+        wavesurfer: any;
+        originalArgs: any[];
+    }
+
 export class PlayerComponent extends React.Component<PlayerComponentProperties, PlayerComponentState> {
 
     private waveSurfer: WaveSurfer[];
@@ -61,11 +66,18 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
     }
 
     public render(): JSX.Element {
+        console.log(this.state.currentIndex);
         return (
             <div>
-                <WaveSurfer audioFile={this.state.currentFile[0]} playing={this.state.state[0]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(true)} ref={(r) => { this.waveSurfer[0]=r } } />
-                <WaveSurfer audioFile={this.state.currentFile[1]} playing={this.state.state[1]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(true)} ref={(r) => { this.waveSurfer[1]=r } } />
-                <WaveSurfer audioFile={this.state.currentFile[2]} playing={this.state.state[2]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(true)} ref={(r) => { this.waveSurfer[2]=r } } />
+                <div hidden={(this.state.currentIndex % 3) != 0}>
+                    <WaveSurfer audioFile={this.state.currentFile[0]} playing={this.state.state[0]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(true)} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[0]=r } } />
+                </div>
+                <div hidden={(this.state.currentIndex % 3) != 1}>
+                    <WaveSurfer audioFile={this.state.currentFile[1]} playing={this.state.state[1]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(true)} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[1]=r } } />
+                </div>
+                <div hidden={(this.state.currentIndex % 3) != 2}>
+                    <WaveSurfer audioFile={this.state.currentFile[2]} playing={this.state.state[2]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(true)} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[2]=r } } />
+                </div>
                 <div id="container" className={this.state.containerState}>
                     <div className="player-control">
                         <div id="previous-button" title="Previous" onClick={evt=>this.trackChange(false)}><i className="fa fa-fast-backward"></i></div>
@@ -80,6 +92,13 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
                 </div>
             </div>
             );
+    }
+
+    private posChange(event: WaveSurferEventParams): void {
+        var pos = Math.floor(event.originalArgs[0]);
+        if (pos == 0) {
+            event.wavesurfer.drawBuffer();
+        }
     }
 
     private base64ToBlob(base64EncodedData: string) : Blob {

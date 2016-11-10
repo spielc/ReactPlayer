@@ -3,21 +3,19 @@ declare module "react-wavesurfer" {
     import React = require("react");
  
     interface WaveSurferProperties {
-        scrollParent: boolean;
-        height: number;
-        progressColor: string;
-        waveColor: string;
-        normalize: boolean;
-        barWidth: number;
+        scrollParent?: boolean;
+        height?: number;
+        progressColor?: string;
+        waveColor?: string;
+        normalize?: boolean;
+        barWidth?: number;
+        fillParent?: boolean;
+        minPxPerSec?: number;
     }
 
-    interface OnPosChangeParam {
-        wavesurfer: WaveSurfer;
-        originalArgs: number[];
-    }
-
-    interface OnFinishParam {
-        wavesurfer: WaveSurfer;
+    interface WaveSurferEventParams {
+        wavesurfer: any;
+        originalArgs: any[];
     }
 
     interface WaveSurferComponentProperties {
@@ -30,8 +28,9 @@ declare module "react-wavesurfer" {
         options?: WaveSurferProperties;
 
         onReady?: () => void;
-        onPosChange?: (param: OnPosChangeParam) => void;
-        onFinish?: (wavesurfer: OnFinishParam) => void;
+        onPosChange?: (param: WaveSurferEventParams) => void;
+        onFinish?: (param: WaveSurferEventParams) => void;
+        onAudioprocess?: (param: WaveSurferEventParams) => void;
         //mediaElt: string | HTMLElement; 
     }
 

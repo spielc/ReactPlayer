@@ -26,7 +26,8 @@
     "pubsub-js": "^1.5.3",
     "react": "^15.2.1",
     "react-dom": "^15.2.1",
-    "react-wavesurfer": "^0.5.2",
-    "reactable": "^0.14.0"
+    "react-wavesurfer": "^0.8.2",
+    "reactable": "^0.14.0",
+    "wavesurfer.js": "^1.2.2"
   }
 }
