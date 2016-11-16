@@ -40,6 +40,7 @@ const PlaylistRow = Reactable.Tr as PlaylistRow;
 export class PlaylistComponent extends React.Component<PlaylistComponentProperties, PlaylistComponentState> {
 
     private settings: Setting<any>[];
+    private tokens: any[];
 
     constructor(props: PlaylistComponentProperties, context?: any) {
         super(props, context);
@@ -133,6 +134,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
             });
             
         });
+        this.tokens = [];
     }
 
     private filesSelected(evt: React.FormEvent): void {
@@ -304,11 +306,12 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
     }
 
     public componentDidMount() : void {
-        PubSub.subscribe(PlayerMessageType, (event: PlayerMessageTypes, data: any) => { this.playerEvent(event, data); });
+        this.tokens.push(PubSub.subscribe(PlayerMessageType, (event: PlayerMessageTypes, data: any) => { this.playerEvent(event, data); }));
+
     }
 
     public componentWillUnmount() : void {
-        PubSub.unsubscribe(PlayerMessageType);
+        this.tokens.forEach(token => PubSub.unsubscribe(token));
     }
 
     public render(): JSX.Element {
