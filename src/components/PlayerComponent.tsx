@@ -14,7 +14,7 @@ export interface PlayerComponentProperties {
 
 interface PlayerComponentState {
     state: PlayerState[];
-    containerState: string;
+    containerState: "enabled" | "disabled";
     currentFile: Blob[];
     currentPos: number[];
     currentIndex: number;
