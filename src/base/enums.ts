@@ -8,14 +8,6 @@ export enum PlayerState {
     Backward
 }
 
-export enum PlayerMessageTypes {
-    Play,
-    Pause,
-    Stop,
-    Forward,
-    Backward
-}
-
 export enum PlaylistMessageTypes {
     
 }

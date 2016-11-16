@@ -11,8 +11,8 @@ import PubSub = require("pubsub-js");
 import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
 import {Setting} from "../base/setting";
-import {ReactPlayerDB} from "../base/typedefs";
-import {PlayerMessageTypes, DocumentType} from "../base/enums";
+import {PlayerMessageType, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB} from "../base/typedefs";
+import {DocumentType} from "../base/enums";
 
 export interface PlaylistComponentProperties {
     db : ReactPlayerDB;
@@ -40,7 +40,6 @@ const PlaylistRow = Reactable.Tr as PlaylistRow;
 export class PlaylistComponent extends React.Component<PlaylistComponentProperties, PlaylistComponentState> {
 
     private settings: Setting<any>[];
-    private tokens: any[];
 
     constructor(props: PlaylistComponentProperties, context?: any) {
         super(props, context);
@@ -78,7 +77,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                 var currentSongIndexSetting: Setting<number> = {
                     _id: "PlaylistComponent.Settings.CurrentSongIndex",
                     DocType: DocumentType.Setting,
-                    Value: 0
+                    Value: -1
                 };
                 this.props.db.put(currentSongIndexSetting);
                 this.settings.push(currentSongIndexSetting);
@@ -134,7 +133,6 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
             });
             
         });
-        this.tokens = [];
     }
 
     private filesSelected(evt: React.FormEvent): void {
@@ -187,7 +185,8 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                 //this.parseTag(event, file)
                 var fileReader=event.target as FileReader;
                 var data = fileReader.result as ArrayBuffer;
-                var hash = sha256.sha256(data);
+                var dataBuffer = new Uint8Array(data);
+                var hash = sha256.sha256(dataBuffer);
                 var track: Track = {
                     _id: hash,
                     _attachments: {
@@ -285,32 +284,31 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
 
     private playerEvent(event: PlayerMessageTypes, data: any): void {
         switch(event) {
-            case PlayerMessageTypes.Forward:
+            case PlayerMessageTypes_Forward:
                 this.setState({
                     currentPlaylist: this.state.currentPlaylist,
                     displayedColumns: this.state.displayedColumns,
                     currentSongIndex: this.state.currentSongIndex + 1,
-                    isPlaying: this.state.isPlaying
+                    isPlaying: true
                 });
                 break;
-            case PlayerMessageTypes.Backward:
+            case PlayerMessageTypes_Backward:
                 this.setState({
                     currentPlaylist: this.state.currentPlaylist,
                     displayedColumns: this.state.displayedColumns,
                     currentSongIndex: this.state.currentSongIndex - 1,
-                    isPlaying: this.state.isPlaying
+                    isPlaying: true
                 });
                 break;
         }
     }
 
     public componentDidMount() : void {
-        this.tokens.push(PubSub.subscribe(PlayerMessageTypes.Forward, this.playerEvent));
-        this.tokens.push(PubSub.subscribe(PlayerMessageTypes.Backward, this.playerEvent));
+        PubSub.subscribe(PlayerMessageType, (event: PlayerMessageTypes, data: any) => { this.playerEvent(event, data); });
     }
 
     public componentWillUnmount() : void {
-
+        PubSub.unsubscribe(PlayerMessageType);
     }
 
     public render(): JSX.Element {

@@ -1,11 +1,12 @@
 import React = require("react");
 import ReactDOM = require("react-dom");
 import WaveSurfer from "react-wavesurfer";
+import PubSub = require("pubsub-js");
 
 import {PlayerState} from "../base/enums";
 import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
-import {ReactPlayerDB} from "../base/typedefs";
+import {PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB} from "../base/typedefs";
 
 export interface PlayerComponentProperties {
     db : ReactPlayerDB;
@@ -34,7 +35,7 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
     constructor(props: PlayerComponentProperties, context?: any) {
         super(props, context);
         /*this.playlist=["", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/01- Intro.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/02- Her Voice Resides.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/03- 4 Words (To Choke Upon).mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/04- Tears Don`t Fall.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/05- Suffocating Under Words Of Sorrow (What Can I Do).mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/06- Hit The Floor.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/07- All These Things I Hate (Revolve Around Me).mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/08- Hand Of Blood.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/09- Room 409.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/10- The Poison.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/11- 10 Years Today.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/12- Cries In Vain.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/13- Spit You Out.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/14- The End.mp3", ""];*/
-        this.state= { state : [PlayerState.Loaded, PlayerState.Loaded, PlayerState.Loaded], containerState : "disabled", currentFile : [], currentPos : [0, 0, 0], currentIndex : 1, currentVolume : 0.5 };
+        this.state= { state : [PlayerState.Loaded, PlayerState.Loaded, PlayerState.Loaded], containerState : "disabled", currentFile : [], currentPos : [0, 0, 0], currentIndex : 0, currentVolume : 0.5 };
         this.waveSurfer=[];
         // TODO we have to get this using pubsub-event
         this.props.db.get("All").then((response) => {
@@ -80,7 +81,7 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
                 <div id="container" className={this.state.containerState}>
                     <div className="player-control">
                         <div id="previous-button" title="Previous" onClick={evt=>this.trackChange(false)}><i className="fa fa-fast-backward"></i></div>
-                        <div id="play-button" title="Play" onClick={evt=>{this.setState({state: [PlayerState.Loaded, PlayerState.Playing, PlayerState.Loaded], containerState: "enabled", currentFile: this.state.currentFile, currentPos: this.state.currentPos, currentIndex: this.state.currentIndex, currentVolume: this.state.currentVolume});}}><i className="fa fa-play"></i></div>
+                        <div id="play-button" title="Play" onClick={evt=>this.trackChange(true)}><i className="fa fa-play"></i></div>
                         <div id="pause-button" title="Pause" onClick={evt=>{this.setState({state: [PlayerState.Loaded, PlayerState.Paused, PlayerState.Loaded], containerState: "enabled", currentFile: this.state.currentFile, currentPos: this.state.currentPos, currentIndex: this.state.currentIndex, currentVolume: this.state.currentVolume });}}><i className="fa fa-pause"></i></div>
                         <div id="stop-button" title="Stop" onClick={evt=>this.stopButtonClicked(evt)}><i className="fa fa-stop"></i></div>
                         <div id="next-button" title="Next" onClick={evt=>this.trackChange(true)}><i className="fa fa-fast-forward"></i></div>
@@ -133,12 +134,15 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
         var newIndex = this.state.currentIndex + changeValue;
         var loadIndex = (newIndex - changeValue) % this.state.currentFile.length;
         var playIndex = newIndex % this.state.currentFile.length;
-        var insertIndex = (newIndex + changeValue) % this.state.currentFile.length;
+        var insertIndex = (newIndex + 2 * changeValue) % this.state.currentFile.length;
         var trackToInsertIndex = newIndex + changeValue;
         //this.state.currentFile[insertIndex] = this.playlist[trackToInsertIndex];
+        // TODO arrays have to be of length 4 that this algorithm works correctly (currently playing song, previous song, next song, buffer)
         this.state.state[playIndex] = PlayerState.Playing;
         this.state.state[loadIndex] = PlayerState.Loaded;
         this.setState({state: this.state.state, containerState: this.state.containerState, currentFile: this.state.currentFile, currentPos: this.state.currentPos, currentIndex: newIndex, currentVolume: this.state.currentVolume});
+        var msgType = (isForward) ? PlayerMessageTypes_Forward : PlayerMessageTypes_Backward;
+        PubSub.publish(msgType, {});
     }
 
     private onReady(): void {
