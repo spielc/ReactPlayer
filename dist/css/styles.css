@@ -148,9 +148,13 @@ body, html{
 	cursor: pointer;
 }
 
-#container.disabled .player-control div{
+#container.disabled .player-control div,
+#container .player-control div.disabled
+{
 	color: #758389;
 }
+
+
 
 #shuffle-button,
 #repeat-button{
