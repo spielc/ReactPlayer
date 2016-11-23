@@ -43,4 +43,8 @@ declare module "reactable" {
     export class Tr<T> extends React.Component<TrProperties<T>, {}> {
         
     }
+
+    export class Tfoot extends React.Component<{}, {}> {
+
+    }
 }

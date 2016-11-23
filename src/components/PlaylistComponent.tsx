@@ -13,6 +13,7 @@ import {Playlist} from "../base/playlist";
 import {Setting} from "../base/setting";
 import {PlayerMessageType, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB} from "../base/typedefs";
 import {DocumentType} from "../base/enums";
+import {shuffle} from "../base/util";
 
 export interface PlaylistComponentProperties {
     db : ReactPlayerDB;
@@ -36,6 +37,9 @@ const PlaylistTableTh = Reactable.Th as PlaylistTableTh;
 
 type PlaylistRow = new () => Reactable.Tr<Track>;
 const PlaylistRow = Reactable.Tr as PlaylistRow;
+
+type PlaylistTableTfoot = new () => Reactable.Tfoot;
+const PlaylistTableTfoot = Reactable.Tfoot as PlaylistTableTfoot;
 
 export class PlaylistComponent extends React.Component<PlaylistComponentProperties, PlaylistComponentState> {
 
@@ -305,6 +309,13 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
         }
     }
 
+
+
+    private shuffle(): void {
+        shuffle(this.state.currentPlaylist.Tracks);
+        this.props.db.put(this.state.currentPlaylist);
+    }
+
     public componentDidMount() : void {
         this.tokens.push(PubSub.subscribe(PlayerMessageType, (event: PlayerMessageTypes, data: any) => { this.playerEvent(event, data); }));
 
@@ -341,6 +352,13 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                         {columns}
                     </PlaylistTableHeader>
                     {rows}
+                    <PlaylistTableTfoot>
+                        <tr className="reactable-footer">
+                            <td><div title="Create new playlist..."><i className="fa fa-file"/></div></td>
+                            <td><div title="Load persisted playlist..."><i className="fa fa-folder-open"/></div></td>
+                            <td><div title="Shuffle" onClick={(evt) => this.shuffle()}><i className="fa fa-random"/></div></td>
+                        </tr>
+                    </PlaylistTableTfoot>
                 </PlaylistTable>
             </div>
         );

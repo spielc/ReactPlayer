@@ -14,4 +14,11 @@ export const PlayerMessageTypes_Stop = PlayerMessageType + ".Stop";
 export const PlayerMessageTypes_Forward = PlayerMessageType + ".Forward";
 export const PlayerMessageTypes_Backward = PlayerMessageType + ".Backward";
 
+export type PlaylistMessageTypes = "PlaylistMessage.Switched" | "PlaylistMessage.Changed";
+
+export const PlaylistMessage = "PlaylistMessage";
+export const PlaylistMessage_Switched = PlaylistMessage + ".Switched";
+export const PlaylistMessage_Changed = PlaylistMessage + ".Changed";
+
+
 

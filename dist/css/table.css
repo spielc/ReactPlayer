@@ -29,6 +29,10 @@ tr.reactable-current-song {
   font-style: italic;
 }
 
+tr.reactable-footer {
+  text-align: center;
+}
+
 #demo-table th {
   cursor: pointer;
 }

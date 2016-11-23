@@ -207,8 +207,43 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
             var newIndex = this.state.currentIndex + changeValue;
             var loadIndex = (newIndex - changeValue) % this.state.currentFile.length;
             var playIndex = newIndex % this.state.currentFile.length;
-            var insertIndex = (newIndex + 2 * changeValue) % this.state.currentFile.length;
-            var trackToInsertIndex = newIndex + changeValue;
+            var insertIndex = (newIndex + changeValue) % this.state.currentFile.length;
+            var trackToInsertIndex = newIndex + changeValue - 1;
+            var promise = new Promise<Blob>((resolve, reject) => {
+                this.props.db.get("All").then((response) => {
+                    var list = response as Playlist;
+                    if (list != null && list.Tracks.length > trackToInsertIndex) {
+                        this.props.db.allDocs({ attachments: true, include_docs: true, key: list.Tracks[trackToInsertIndex]._id }).then((res) => {
+                            if (res.rows.length == 1) {
+                                var track = res.rows[0].doc as Track;
+                                var data = track._attachments["attachmentId"].data as any;
+                                var base64Data = data as string;
+                                //console.log(attachment);
+                                var file = this.base64ToBlob(base64Data);
+                                resolve(file);
+                            }
+                            else 
+                                resolve(new Blob());
+                        });
+                    }
+                    else {
+                        resolve(new Blob());
+                    }
+                });
+            }).then(value => {
+                console.log(this.state);
+                this.state.currentFile[insertIndex] = value;
+                this.state.state[insertIndex] = PlayerState.Loaded;
+                this.setState({ 
+                    state: this.state.state, 
+                    containerState: this.state.containerState, 
+                    currentFile: this.state.currentFile, 
+                    currentPos: this.state.currentPos, 
+                    currentIndex: this.state.currentIndex, 
+                    currentVolume: this.state.currentVolume
+                });
+            });
+            
             //this.state.currentFile[insertIndex] = this.playlist[trackToInsertIndex];
             // TODO arrays have to be of length 4 that this algorithm works correctly (currently playing song, previous song, next song, buffer)
             this.state.state[playIndex] = PlayerState.Playing;
