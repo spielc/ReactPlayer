@@ -244,8 +244,6 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
                 });
             });
             
-            //this.state.currentFile[insertIndex] = this.playlist[trackToInsertIndex];
-            // TODO arrays have to be of length 4 that this algorithm works correctly (currently playing song, previous song, next song, buffer)
             this.state.state[playIndex] = PlayerState.Playing;
             this.state.state[loadIndex] = PlayerState.Loaded;
             this.setState({state: this.state.state, containerState: this.state.containerState, currentFile: this.state.currentFile, currentPos: this.state.currentPos, currentIndex: newIndex, currentVolume: this.state.currentVolume});
