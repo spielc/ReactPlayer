@@ -45,6 +45,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
 
     private settings: Setting<any>[];
     private tokens: any[];
+    private dropZone: HTMLDivElement;
 
     constructor(props: PlaylistComponentProperties, context?: any) {
         super(props, context);
@@ -309,7 +310,29 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
         }
     }
 
+    private dropZoneDrop(event: React.DragEvent): void {
+        event.stopPropagation();
+	    event.preventDefault();
+        var files = event.dataTransfer.files;
+        for (var i=0;i<files.length;i++) {
+            var file = files.item(i);
+            // TODO add parsing code again (plus change code for metadataretrieval to usage of musicmetadata)
+            console.log(`File '${file.name}' of type '${file.type}' dropped!`)
+        }
+        this.dropZone.className = "hidden";
+    }
 
+    private dropZoneDragOver(event: React.DragEvent): void {
+        event.stopPropagation();
+	    event.preventDefault();
+        event.dataTransfer.dropEffect = "copy";
+    }
+
+    private dropZoneDragLeave(event: React.DragEvent): void {
+        event.stopPropagation();
+	    event.preventDefault();
+	    this.dropZone.className = "hidden";
+    }
 
     private shuffle(): void {
         shuffle(this.state.currentPlaylist.Tracks);
@@ -318,11 +341,16 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
 
     public componentDidMount() : void {
         this.tokens.push(PubSub.subscribe(PlayerMessageType, (event: PlayerMessageTypes, data: any) => { this.playerEvent(event, data); }));
-
+        window.document.addEventListener("dragover", (event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            this.dropZone.className = "";
+        })
     }
 
     public componentWillUnmount() : void {
         this.tokens.forEach(token => PubSub.unsubscribe(token));
+        window.document.removeEventListener("dragover");
     }
 
     public render(): JSX.Element {
@@ -346,7 +374,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
         }
         return (
             <div>
-                <input type="file" multiple={true} onChange={(evt) => this.filesSelected(evt)} />
+                <div id="drop-zone" className="hidden" ref={r => this.dropZone = r} onDragLeave={evt => this.dropZoneDragLeave(evt)} onDragOver={evt => this.dropZoneDragOver(evt)} onDrop={evt => this.dropZoneDrop(evt)}>Drag &amp; Drop Files Here</div>
                 <PlaylistTable id="demo-table" sortable={this.state.displayedColumns}>
                     <PlaylistTableHeader>
                         {columns}
