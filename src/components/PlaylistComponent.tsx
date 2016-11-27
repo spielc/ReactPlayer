@@ -1,12 +1,12 @@
 //<div id="shuffle-button" title="Shuffle Off"><i className="fa fa-random"></i></div>
                         //<div id="repeat-button" title="Repeat Off"><i className="fa fa-refresh"><span>1</span></i></div>
-import React = require("react");
-import ReactDOM = require("react-dom");
-import Reactable = require("reactable");
-import PouchDB = require("pouchdb-browser");
-import ID3 = require("id3-parser");
-import sha256 = require("js-sha256");
-import PubSub = require("pubsub-js");
+import * as React from "react";
+import * as ReactDOM from "react-dom";
+import * as Reactable from "reactable";
+import * as PouchDB from "pouchdb-browser";
+// import ID3 = require("id3-parser");
+// import sha256 = require("js-sha256");
+import * as PubSub from "pubsub-js";
 
 import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
@@ -110,49 +110,49 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                 });
             });
 
-            this.props.db.changes({
-                include_docs: true,
-                since: "now",
-                live: true
-            }).on("change", (args) => {
-                if (args.id) {
-                    var changeArgs = args as PouchDB.Core.ChangeResponse;
-                    this.props.db.get(args.id).then((value) => {
-                        switch(value.DocType) {
-                            case DocumentType.Track: {
-                                this.addTrackToPlaylist(changeArgs.id, playlistName.Value);
-                                break;
-                            }
-                            case DocumentType.Playlist: {
-                                var playlist = value as Playlist;
-                                this.setState({
-                                    currentPlaylist: playlist,
-                                    displayedColumns: this.state.displayedColumns,
-                                    currentSongIndex: currentSongIndex.Value,
-                                    isPlaying: this.state.isPlaying
-                                });
-                                break;
-                            }
-                        }
-                    });
-                }
-            });
+            // this.props.db.changes({
+            //     include_docs: true,
+            //     since: "now",
+            //     live: true
+            // }).on("change", (args) => {
+            //     if (args.id) {
+            //         var changeArgs = args as PouchDB.Core.ChangeResponse;
+            //         this.props.db.get(args.id).then((value) => {
+            //             switch(value.DocType) {
+            //                 case DocumentType.Track: {
+            //                     this.addTrackToPlaylist(changeArgs.id, playlistName.Value);
+            //                     break;
+            //                 }
+            //                 case DocumentType.Playlist: {
+            //                     var playlist = value as Playlist;
+            //                     this.setState({
+            //                         currentPlaylist: playlist,
+            //                         displayedColumns: this.state.displayedColumns,
+            //                         currentSongIndex: currentSongIndex.Value,
+            //                         isPlaying: this.state.isPlaying
+            //                     });
+            //                     break;
+            //                 }
+            //             }
+            //         });
+            //     }
+            // });
             
         });
         this.tokens = [];
     }
 
-    private filesSelected(evt: React.FormEvent): void {
-        //ugly but necessary... 
-        var rawObject = evt.currentTarget as any;
-        var files = rawObject.files as FileList;
+    // private filesSelected(evt: React.FormEvent): void {
+    //     //ugly but necessary... 
+    //     var rawObject = evt.currentTarget as any;
+    //     var files = rawObject.files as FileList;
         
-        for (var i=0; i<files.length; i++) {
-            var file = files[i];
-            this.handleFile(file);
-        } 
+    //     for (var i=0; i<files.length; i++) {
+    //         var file = files[i];
+    //         this.handleFile(file);
+    //     } 
         
-    }
+    // }
 
     private handleFile(file: File): void {
         var promises = [this.createHash(file), this.createTag(file)];
@@ -165,16 +165,16 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                     _id: `track_${track1._id + track2._id}`,
                     _attachments: (track1._attachments != null) ? track1._attachments : track2._attachments,
                     DocType: DocumentType.Track,
-                    title: track1.title + track2.title,
-                    artist: track1.artist + track2.artist,
-                    album: track1.album + track2.album,
-                    year: track1.year + track2.year,
-                    image: (track1.image != null) ? track1.image : track2.image,
-                    lyrics: track1.lyrics + track2.lyrics,
-                    comment: track1.comment + track2.comment,
-                    track: track1.track + track2.track,
-                    genre: track1.genre + track2.genre,
-                    version: (track1.version != null) ? track1.version : track2.version
+                    // title: track1.title + track2.title,
+                    // artist: track1.artist + track2.artist,
+                    // album: track1.album + track2.album,
+                    // year: track1.year + track2.year,
+                    // image: (track1.image != null) ? track1.image : track2.image,
+                    // lyrics: track1.lyrics + track2.lyrics,
+                    // comment: track1.comment + track2.comment,
+                    // track: track1.track + track2.track,
+                    // genre: track1.genre + track2.genre,
+                    // version: (track1.version != null) ? track1.version : track2.version
                 }
                 return this.props.db.put(resultingTrack).then((response)=>{
                     if (response.ok) {
@@ -193,9 +193,10 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                 var fileReader=event.target as FileReader;
                 var data = fileReader.result as ArrayBuffer;
                 var dataBuffer = new Uint8Array(data);
-                var hash = sha256.sha256(dataBuffer);
+                //TODO re-enable again in the future...
+                // var hash = sha256.sha256(dataBuffer);
                 var track: Track = {
-                    _id: hash,
+                    _id: "",
                     _attachments: {
                         attachmentId: {
                             type: file.type,
@@ -203,16 +204,16 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                         },
                     },
                     DocType: DocumentType.Track,
-                    title: "",
-                    artist: "",
-                    album: "",
-                    year: "",
-                    image: null,
-                    lyrics: "",
-                    comment: "",
-                    track: 0,
-                    genre: "",
-                    version: null
+                    // title: "",
+                    // artist: "",
+                    // album: "",
+                    // year: "",
+                    // image: null,
+                    // lyrics: "",
+                    // comment: "",
+                    // track: 0,
+                    // genre: "",
+                    // version: null
                 };
                 resolve(track);
             };
@@ -228,46 +229,46 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                 var fileReader=event.target as FileReader;
                 var data = fileReader.result as ArrayBuffer;
                 var dataBuffer = new Uint8Array(data);
-                ID3.parse(dataBuffer).then((tag) => {
-                    var track: Track = {
-                        _id: "",
-                        _attachments: null,
-                        DocType: DocumentType.Track,
-                        album: tag.album,
-                        artist: tag.artist,
-                        title: tag.title,
-                        year: tag.year,
-                        image: tag.image,
-                        lyrics: tag.lyrics,
-                        comment: tag.comment,
-                        track: tag.track,
-                        genre: tag.genre,
-                        version: tag.version
-                    };
-                    resolve(track);
-                });
+                // ID3.parse(dataBuffer).then((tag) => {
+                //     var track: Track = {
+                //         _id: "",
+                //         _attachments: null,
+                //         DocType: DocumentType.Track,
+                //         album: tag.album,
+                //         artist: tag.artist,
+                //         title: tag.title,
+                //         year: tag.year,
+                //         image: tag.image,
+                //         lyrics: tag.lyrics,
+                //         comment: tag.comment,
+                //         track: tag.track,
+                //         genre: tag.genre,
+                //         version: tag.version
+                //     };
+                //     resolve(track);
+                // });
             };
             reader.readAsArrayBuffer(file);
         });
         return promise;
     }
 
-    private createTrack(hash: string, tag: ID3.Tag, file: File): Promise<PouchDB.Core.Response> {
+    private createTrack(hash: string, tag: any, file: File): Promise<PouchDB.Core.Response> {
         var attachmentId = `blob_${hash}`;
         var track: Track = {
             _id: hash,
             _attachments: {},
             DocType: DocumentType.Track,
-            album: tag.album,
-            artist: tag.artist,
-            title: tag.title,
-            year: tag.year,
-            image: tag.image,
-            lyrics: tag.lyrics,
-            comment: tag.comment,
-            track: tag.track,
-            genre: tag.genre,
-            version: tag.version
+            // album: tag.album,
+            // artist: tag.artist,
+            // title: tag.title,
+            // year: tag.year,
+            // image: tag.image,
+            // lyrics: tag.lyrics,
+            // comment: tag.comment,
+            // track: tag.track,
+            // genre: tag.genre,
+            // version: tag.version
         };
         return this.props.db.put(track);
     }
@@ -310,7 +311,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
         }
     }
 
-    private dropZoneDrop(event: React.DragEvent): void {
+    private dropZoneDrop(event: React.DragEvent<HTMLDivElement>): void {
         event.stopPropagation();
 	    event.preventDefault();
         var files = event.dataTransfer.files;
@@ -322,13 +323,13 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
         this.dropZone.className = "hidden";
     }
 
-    private dropZoneDragOver(event: React.DragEvent): void {
+    private dropZoneDragOver(event: React.DragEvent<HTMLDivElement>): void {
         event.stopPropagation();
 	    event.preventDefault();
         event.dataTransfer.dropEffect = "copy";
     }
 
-    private dropZoneDragLeave(event: React.DragEvent): void {
+    private dropZoneDragLeave(event: React.DragEvent<HTMLDivElement>): void {
         event.stopPropagation();
 	    event.preventDefault();
 	    this.dropZone.className = "hidden";

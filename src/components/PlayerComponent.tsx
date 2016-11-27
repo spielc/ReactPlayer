@@ -1,7 +1,7 @@
-import React = require("react");
-import ReactDOM = require("react-dom");
+import * as React from "react";
+import * as ReactDOM from "react-dom";
 import WaveSurfer from "react-wavesurfer";
-import PubSub = require("pubsub-js");
+import * as PubSub from "pubsub-js";
 
 import {PlayerState} from "../base/enums";
 import {Track} from "../base/track";
@@ -38,7 +38,7 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
         /*this.playlist=["", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/01- Intro.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/02- Her Voice Resides.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/03- 4 Words (To Choke Upon).mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/04- Tears Don`t Fall.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/05- Suffocating Under Words Of Sorrow (What Can I Do).mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/06- Hit The Floor.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/07- All These Things I Hate (Revolve Around Me).mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/08- Hand Of Blood.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/09- Room 409.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/10- The Poison.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/11- 10 Years Today.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/12- Cries In Vain.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/13- Spit You Out.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/14- The End.mp3", ""];*/
         this.state= { state : [PlayerState.Loaded, PlayerState.Loaded, PlayerState.Loaded], containerState : "disabled", currentFile : [], currentPos : [0, 0, 0], currentIndex : 1, currentVolume : 0.5 };
         this.waveSurfer=[];
-        // TODO we have to get this using pubsub-event
+        // TODO we have to get this using pubsub-event 
         this.props.db.get("All").then((response) => {
             var list = response as Playlist;
             if (list != null) {
@@ -107,55 +107,56 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
         });
     }
 
-    private createDummyMouseEvent(): React.MouseEvent {
-        return {
-            altKey: false,
-            button: 0,
-            buttons: 0,
-            clientX: 0,
-            clientY: 0,
-            ctrlKey: false,
-            getModifierState: (blub: string) => true,
-            metaKey: false,
-            pageX: 0,
-            pageY: 0,
-            relatedTarget: this.forwardBtn,
-            screenX: 0,
-            screenY: 0,
-            shiftKey: false,
-            bubbles: false,
-            cancelable: false,
-            currentTarget: this.forwardBtn,
-            defaultPrevented: false,
-            eventPhase: 0,
-            isTrusted: false,
-            nativeEvent: {
-                bubbles: false,
-                cancelBubble: false,
-                cancelable: false,
-                currentTarget: this.forwardBtn,
-                defaultPrevented: false,
-                eventPhase: 0,
-                isTrusted: false,
-                returnValue: false,
-                srcElement: this.forwardBtn,
-                target: this.forwardBtn,
-                timeStamp: 0,
-                type: "",
-                initEvent: (eventTypeArg: string, canBubbleArg: boolean, cancelableArg: boolean) => {},
-                preventDefault: () => {},
-                stopImmediatePropagation: () => {},
-                stopPropagation: () => {},
-                AT_TARGET: 0,
-                BUBBLING_PHASE: 0,
-                CAPTURING_PHASE: 0
-            },
-            preventDefault: () => {},
-            stopPropagation: () => {},
-            target: this.forwardBtn,
-            timeStamp: new Date(),
-            type: ""
-        };
+    private createDummyMouseEvent(): React.MouseEvent<HTMLDivElement> {
+        // return {
+        //     altKey: false,
+        //     button: 0,
+        //     buttons: 0,
+        //     clientX: 0,
+        //     clientY: 0,
+        //     ctrlKey: false,
+        //     getModifierState: (blub: string) => true,
+        //     metaKey: false,
+        //     pageX: 0,
+        //     pageY: 0,
+        //     relatedTarget: this.forwardBtn,
+        //     screenX: 0,
+        //     screenY: 0,
+        //     shiftKey: false,
+        //     bubbles: false,
+        //     cancelable: false,
+        //     currentTarget: this.forwardBtn,
+        //     defaultPrevented: false,
+        //     eventPhase: 0,
+        //     isTrusted: false,
+        //     nativeEvent: {
+        //         bubbles: false,
+        //         cancelBubble: false,
+        //         cancelable: false,
+        //         currentTarget: this.forwardBtn,
+        //         defaultPrevented: false,
+        //         eventPhase: 0,
+        //         isTrusted: false,
+        //         returnValue: false,
+        //         srcElement: this.forwardBtn,
+        //         target: this.forwardBtn,
+        //         timeStamp: 0,
+        //         type: "",
+        //         initEvent: (eventTypeArg: string, canBubbleArg: boolean, cancelableArg: boolean) => {},
+        //         preventDefault: () => {},
+        //         stopImmediatePropagation: () => {},
+        //         stopPropagation: () => {},
+        //         AT_TARGET: 0,
+        //         BUBBLING_PHASE: 0,
+        //         CAPTURING_PHASE: 0
+        //     },
+        //     preventDefault: () => {},
+        //     stopPropagation: () => {},
+        //     target: this.forwardBtn,
+        //     timeStamp: new Date(),
+        //     type: ""
+        // };
+        return null;
     }
 
     private trackChangeBtnClassName(isForwardBtn: boolean): string {
@@ -185,7 +186,7 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
         return bb;
     }
 
-    private stopButtonClicked(evt: React.MouseEvent): void {
+    private stopButtonClicked(evt: React.MouseEvent<HTMLDivElement>): void {
         var currentPos=this.state.currentIndex % this.state.currentFile.length;
         this.waveSurfer[currentPos].props.pos = 0;
         this.state.state[currentPos] = PlayerState.Stopped;
@@ -198,7 +199,7 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
         this.setState({state: this.state.state, containerState: this.state.containerState, currentFile: this.state.currentFile, currentPos: this.state.currentPos, currentIndex: this.state.currentIndex, currentVolume: newVolume});
     }
 
-    private trackChange(evt: React.MouseEvent): void {
+    private trackChange(evt: React.MouseEvent<HTMLDivElement>): void {
         var target = evt.currentTarget as HTMLElement;
         var className = target.className;
         if (className != "disabled") {

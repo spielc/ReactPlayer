@@ -15,7 +15,7 @@ export class TestComponent extends React.Component<{}, TestComponentState> {
         }
     }
 
-    private filesSelected(evt: React.FormEvent): void {
+    private filesSelected(evt: React.FormEvent<HTMLInputElement>): void {
         var rawObject = evt.currentTarget as any;
         var files = rawObject.files as FileList;
         var file = files[0];
