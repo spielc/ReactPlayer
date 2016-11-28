@@ -3,6 +3,8 @@ typings
 src/**/*.js
 dist/**/*.js
 **/*.js.map
-!typings/globals/pouchdb-core/index.d.ts
-!typings/globals/react-wavesurfer
-!typings/globals/reactable
+!@types/pouchdb-core/index.d.ts
+!@types/react-wavesurfer
+!@types/reactable
+!@types/id3-parser
+!@types/js-sha256

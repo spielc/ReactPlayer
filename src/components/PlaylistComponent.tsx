@@ -4,8 +4,8 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import * as Reactable from "reactable";
 import * as PouchDB from "pouchdb-browser";
-// import ID3 = require("id3-parser");
-// import sha256 = require("js-sha256");
+import * as ID3 from "id3-parser";
+import * as sha256 from "js-sha256";
 import * as PubSub from "pubsub-js";
 
 import {Track} from "../base/track";
@@ -110,33 +110,33 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                 });
             });
 
-            // this.props.db.changes({
-            //     include_docs: true,
-            //     since: "now",
-            //     live: true
-            // }).on("change", (args) => {
-            //     if (args.id) {
-            //         var changeArgs = args as PouchDB.Core.ChangeResponse;
-            //         this.props.db.get(args.id).then((value) => {
-            //             switch(value.DocType) {
-            //                 case DocumentType.Track: {
-            //                     this.addTrackToPlaylist(changeArgs.id, playlistName.Value);
-            //                     break;
-            //                 }
-            //                 case DocumentType.Playlist: {
-            //                     var playlist = value as Playlist;
-            //                     this.setState({
-            //                         currentPlaylist: playlist,
-            //                         displayedColumns: this.state.displayedColumns,
-            //                         currentSongIndex: currentSongIndex.Value,
-            //                         isPlaying: this.state.isPlaying
-            //                     });
-            //                     break;
-            //                 }
-            //             }
-            //         });
-            //     }
-            // });
+            this.props.db.changes({
+                include_docs: true,
+                since: "now",
+                live: true
+            }).on("change", (args) => {
+                if (args.id) {
+                    var changeArgs = args as PouchDB.Core.ChangeResponse;
+                    this.props.db.get(args.id).then((value) => {
+                        switch(value.DocType) {
+                            case DocumentType.Track: {
+                                this.addTrackToPlaylist(changeArgs.id, playlistName.Value);
+                                break;
+                            }
+                            case DocumentType.Playlist: {
+                                var playlist = value as Playlist;
+                                this.setState({
+                                    currentPlaylist: playlist,
+                                    displayedColumns: this.state.displayedColumns,
+                                    currentSongIndex: currentSongIndex.Value,
+                                    isPlaying: this.state.isPlaying
+                                });
+                                break;
+                            }
+                        }
+                    });
+                }
+            });
             
         });
         this.tokens = [];
@@ -165,16 +165,16 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                     _id: `track_${track1._id + track2._id}`,
                     _attachments: (track1._attachments != null) ? track1._attachments : track2._attachments,
                     DocType: DocumentType.Track,
-                    // title: track1.title + track2.title,
-                    // artist: track1.artist + track2.artist,
-                    // album: track1.album + track2.album,
-                    // year: track1.year + track2.year,
-                    // image: (track1.image != null) ? track1.image : track2.image,
-                    // lyrics: track1.lyrics + track2.lyrics,
-                    // comment: track1.comment + track2.comment,
-                    // track: track1.track + track2.track,
-                    // genre: track1.genre + track2.genre,
-                    // version: (track1.version != null) ? track1.version : track2.version
+                    title: track1.title + track2.title,
+                    artist: track1.artist + track2.artist,
+                    album: track1.album + track2.album,
+                    year: track1.year + track2.year,
+                    image: (track1.image != null) ? track1.image : track2.image,
+                    lyrics: track1.lyrics + track2.lyrics,
+                    comment: track1.comment + track2.comment,
+                    track: track1.track + track2.track,
+                    genre: track1.genre + track2.genre,
+                    version: (track1.version != null) ? track1.version : track2.version
                 }
                 return this.props.db.put(resultingTrack).then((response)=>{
                     if (response.ok) {
@@ -193,10 +193,9 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                 var fileReader=event.target as FileReader;
                 var data = fileReader.result as ArrayBuffer;
                 var dataBuffer = new Uint8Array(data);
-                //TODO re-enable again in the future...
-                // var hash = sha256.sha256(dataBuffer);
+                var hash = sha256.sha256(dataBuffer);
                 var track: Track = {
-                    _id: "",
+                    _id: hash,
                     _attachments: {
                         attachmentId: {
                             type: file.type,
@@ -204,16 +203,16 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                         },
                     },
                     DocType: DocumentType.Track,
-                    // title: "",
-                    // artist: "",
-                    // album: "",
-                    // year: "",
-                    // image: null,
-                    // lyrics: "",
-                    // comment: "",
-                    // track: 0,
-                    // genre: "",
-                    // version: null
+                    title: "",
+                    artist: "",
+                    album: "",
+                    year: "",
+                    image: null,
+                    lyrics: "",
+                    comment: "",
+                    track: 0,
+                    genre: "",
+                    version: null
                 };
                 resolve(track);
             };
@@ -229,24 +228,24 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                 var fileReader=event.target as FileReader;
                 var data = fileReader.result as ArrayBuffer;
                 var dataBuffer = new Uint8Array(data);
-                // ID3.parse(dataBuffer).then((tag) => {
-                //     var track: Track = {
-                //         _id: "",
-                //         _attachments: null,
-                //         DocType: DocumentType.Track,
-                //         album: tag.album,
-                //         artist: tag.artist,
-                //         title: tag.title,
-                //         year: tag.year,
-                //         image: tag.image,
-                //         lyrics: tag.lyrics,
-                //         comment: tag.comment,
-                //         track: tag.track,
-                //         genre: tag.genre,
-                //         version: tag.version
-                //     };
-                //     resolve(track);
-                // });
+                ID3.parse(dataBuffer).then((tag) => {
+                    var track: Track = {
+                        _id: "",
+                        _attachments: null,
+                        DocType: DocumentType.Track,
+                        album: tag.album,
+                        artist: tag.artist,
+                        title: tag.title,
+                        year: tag.year,
+                        image: tag.image,
+                        lyrics: tag.lyrics,
+                        comment: tag.comment,
+                        track: tag.track,
+                        genre: tag.genre,
+                        version: tag.version
+                    };
+                    resolve(track);
+                });
             };
             reader.readAsArrayBuffer(file);
         });
@@ -259,16 +258,16 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
             _id: hash,
             _attachments: {},
             DocType: DocumentType.Track,
-            // album: tag.album,
-            // artist: tag.artist,
-            // title: tag.title,
-            // year: tag.year,
-            // image: tag.image,
-            // lyrics: tag.lyrics,
-            // comment: tag.comment,
-            // track: tag.track,
-            // genre: tag.genre,
-            // version: tag.version
+            album: tag.album,
+            artist: tag.artist,
+            title: tag.title,
+            year: tag.year,
+            image: tag.image,
+            lyrics: tag.lyrics,
+            comment: tag.comment,
+            track: tag.track,
+            genre: tag.genre,
+            version: tag.version
         };
         return this.props.db.put(track);
     }
@@ -317,8 +316,9 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
         var files = event.dataTransfer.files;
         for (var i=0;i<files.length;i++) {
             var file = files.item(i);
-            // TODO add parsing code again (plus change code for metadataretrieval to usage of musicmetadata)
-            console.log(`File '${file.name}' of type '${file.type}' dropped!`)
+            this.handleFile(file);
+            //console.log(`File '${file.name}' of type '${file.type}' dropped!`);
+            
         }
         this.dropZone.className = "hidden";
     }
