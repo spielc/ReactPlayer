@@ -6,3 +6,8 @@ export function shuffle<T>(arr: T[]): void {
         arr[j] = temp;
     }
 }
+
+export function mod(num: number, mod: number): number {
+    var remain = num % mod;
+    return Math.floor(remain >= 0 ? remain : remain + mod);
+}

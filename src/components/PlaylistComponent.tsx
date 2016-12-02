@@ -11,7 +11,7 @@ import * as PubSub from "pubsub-js";
 import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
 import {Setting} from "../base/setting";
-import {PlayerMessageType, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB} from "../base/typedefs";
+import {PlayerMessageType, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlayerMessageTypes_Play} from "../base/typedefs";
 import {DocumentType} from "../base/enums";
 import {shuffle} from "../base/util";
 
@@ -81,9 +81,9 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                 this.props.db.put(playlistnameSetting);
                 this.settings.push(playlistnameSetting);
                 var currentSongIndexSetting: Setting<number> = {
-                    _id: "PlaylistComponent.Settings.CurrentSongIndex",
+                    _id: CurrentSongIndexSetting,
                     DocType: DocumentType.Setting,
-                    Value: -1
+                    Value: 0
                 };
                 this.props.db.put(currentSongIndexSetting);
                 this.settings.push(currentSongIndexSetting);
@@ -92,7 +92,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                 this.settings = response.rows.map(row => row.doc).map(doc => doc as Setting<any>);
 
             var playlistName = this.settings.find((value, index, obj) => value._id == "PlaylistComponent.Settings.Playlistname") as Setting<string>;
-            var currentSongIndex = this.settings.find((value, index, obj) => value._id == "PlaylistComponent.Settings.CurrentSongIndex") as Setting<number>;
+            var currentSongIndex = this.settings.find((value, index, obj) => value._id == CurrentSongIndexSetting) as Setting<number>;
 
             this.props.db.put(allPlaylist).then((res) => {
                 
@@ -291,20 +291,37 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
 
     private playerEvent(event: PlayerMessageTypes, data: any): void {
         switch(event) {
+            case PlayerMessageTypes_Play:
+                break;
             case PlayerMessageTypes_Forward:
-                this.setState({
-                    currentPlaylist: this.state.currentPlaylist,
-                    displayedColumns: this.state.displayedColumns,
-                    currentSongIndex: this.state.currentSongIndex + 1,
-                    isPlaying: true
-                });
+                var currentSongIndex = this.settings.find((value, index, obj) => value._id == CurrentSongIndexSetting) as Setting<number>;
+                currentSongIndex.Value = currentSongIndex.Value + 1;
+                this.props.db.get(currentSongIndex._id).then(doc => {
+                    var blub = doc as Setting<number>;
+                    blub.Value = currentSongIndex.Value;
+                    this.props.db.put(blub).then(response => {
+                        this.setState({
+                            currentPlaylist: this.state.currentPlaylist,
+                            displayedColumns: this.state.displayedColumns,
+                            currentSongIndex: currentSongIndex.Value,
+                            isPlaying: true
+                        });
+                    }, reason => {
+                        console.log("error: " + reason);
+                    });
+                })
+                
                 break;
             case PlayerMessageTypes_Backward:
-                this.setState({
-                    currentPlaylist: this.state.currentPlaylist,
-                    displayedColumns: this.state.displayedColumns,
-                    currentSongIndex: this.state.currentSongIndex - 1,
-                    isPlaying: true
+                var currentSongIndex = this.settings.find((value, index, obj) => value._id == CurrentSongIndexSetting) as Setting<number>;
+                currentSongIndex.Value = currentSongIndex.Value - 1;
+                this.props.db.put(currentSongIndex).then(response => {
+                    this.setState({
+                        currentPlaylist: this.state.currentPlaylist,
+                        displayedColumns: this.state.displayedColumns,
+                        currentSongIndex: currentSongIndex.Value,
+                        isPlaying: true
+                    });
                 });
                 break;
         }

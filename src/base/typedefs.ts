@@ -20,5 +20,5 @@ export const PlaylistMessage = "PlaylistMessage";
 export const PlaylistMessage_Switched = PlaylistMessage + ".Switched";
 export const PlaylistMessage_Changed = PlaylistMessage + ".Changed";
 
-
+export const CurrentSongIndexSetting = "PlaylistComponent.Settings.CurrentSongIndex";
 
