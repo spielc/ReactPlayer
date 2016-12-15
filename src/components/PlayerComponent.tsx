@@ -6,7 +6,7 @@ import * as PubSub from "pubsub-js";
 import {PlayerState} from "../base/enums";
 import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
-import {PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting} from "../base/typedefs";
+import {PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_Changed, PlaylistMessage_TrackChanged} from "../base/typedefs";
 import {Setting} from "../base/setting";
 import {mod} from "../base/util";
 
@@ -34,6 +34,7 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
     //private playlist: string[];
     private oldVolume: number;
     private forwardBtn: HTMLDivElement;
+    private tokens: any[];
 
     constructor(props: PlayerComponentProperties, context?: any) {
         super(props, context);
@@ -41,60 +42,12 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
         this.state= { state : [PlayerState.Loaded, PlayerState.Loaded, PlayerState.Loaded], containerState : "disabled", currentFile : [], currentPos : [0, 0, 0], currentIndex : 1, currentVolume : 0.5 };
         this.waveSurfer=[];
         // TODO we have to get this using pubsub-event 
-        this.props.db.get("All").then((response) => {
-            var list = response as Playlist;
-            if (list != null) {
-                this.props.db.get(CurrentSongIndexSetting).then(res => {
-                    var setting = res as Setting<number>
-                    if (setting != null) {
-                        var indizes = [setting.Value - 1, setting.Value, setting.Value + 1]
-                        var files: Blob[] = [];
-                        var keys: string[] = [];
-                        var invalidIndizes = 0;
-                        for (var i=0;i<indizes.length;i++) {
-                            var idx = mod(indizes[i], indizes.length);
-                            if(indizes[i]>=0 && indizes[i]<list.Tracks.length)
-                                keys[idx] = list.Tracks[indizes[i]]._id;
-                            else 
-                                keys[idx] = "";
-                                
-                        }
-                        this.props.db.allDocs({ attachments: true, include_docs: true, keys: keys }).then((response) => {
-                            for(var i=0;i<keys.length;i++) {
-                                var file = new Blob();
-                                var key = keys[i];
-                                if (key != "") {
-                                    var track = response.rows[i].doc as Track;
-                                    var trackData = track._attachments["attachmentId"].data as any;
-                                    var base64Data = trackData as string;
-                                    //console.log(attachment);
-                                    file = this.base64ToBlob(base64Data);
-                                }
-                                
-                                files[i] = file;
-                            }
-                            // response.rows.forEach((value) => {
-                            //     var doc = value.doc as Track;
-                            //     var data = doc._attachments["attachmentId"].data as any;
-                            //     var base64Data = data as string;
-                            //     //console.log(attachment);
-                            //     var file = this.base64ToBlob(base64Data);
-                            //     files.push(file);
-                            // });
-                            this.setState({
-                                state: this.state.state,
-                                containerState: this.state.containerState,
-                                currentFile: files,
-                                currentPos: this.state.currentPos,
-                                currentIndex: setting.Value,
-                                currentVolume: this.state.currentVolume
-                            });
-                        });
-                    }
-                });
-                
-            }
-        });
+        this.loadFiles();
+        this.tokens = [];
+    }    
+
+    public componentDidMount() : void {
+        this.tokens.push(PubSub.subscribe(PlaylistMessageType, (event: PlaylistMessageTypes, trackIdx: number) => { this.playlistEvent(event, trackIdx); }));
     }
 
     public render(): JSX.Element {
@@ -123,6 +76,82 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
                 </div>
             </div>
             );
+    }
+
+    private loadFiles(callback?: () => any): void {
+        this.props.db.get("All").then((response) => {
+            var list = response as Playlist;
+            if (list != null) {
+                this.props.db.get(CurrentSongIndexSetting).then(res => {
+                    var setting = res as Setting<number>
+                    if (setting != null) {
+                        var indizes = [setting.Value - 1, setting.Value, setting.Value + 1]
+                        var files: Blob[] = [];
+                        var keys: string[] = [];
+                        var invalidIndizes = 0;
+                        for (var i=0;i<indizes.length;i++) {
+                            var idx = mod(indizes[i], indizes.length);
+                            if(indizes[i]>=0 && indizes[i]<list.Tracks.length)
+                                keys[idx] = list.Tracks[indizes[i]]._id;
+                            else 
+                                keys[idx] = "";
+                                
+                        }
+                        this.props.db.allDocs({attachments: true, include_docs: true, keys: keys}).then((response) => {
+                            for(var i=0;i<keys.length;i++) {
+                                var file = new Blob();
+                                var key = keys[i];
+                                if (key != "") {
+                                    var track = response.rows[i].doc as Track;
+                                    var trackData = track._attachments["attachmentId"].data as any;
+                                    var base64Data = trackData as string;
+                                    file = this.base64ToBlob(base64Data);
+                                }
+                                
+                                files[i] = file;
+                            }
+                            this.setState({
+                                state: this.state.state,
+                                containerState: this.state.containerState,
+                                currentFile: files,
+                                currentPos: this.state.currentPos,
+                                currentIndex: setting.Value,
+                                currentVolume: this.state.currentVolume
+                            }, callback);
+                        });
+                    }
+                });
+                
+            }
+        });
+    }
+
+    private playlistEvent(event: PlaylistMessageTypes, trackIdx: number): void {
+        switch(event) {
+            case PlaylistMessage_TrackChanged:
+                var isPlaying = this.state.state.some(state => state == PlayerState.Playing);
+                this.state.state.fill(PlayerState.Loaded)
+                this.setState({
+                    state: this.state.state, 
+                    containerState: "disabled", 
+                    currentFile: this.state.currentFile, 
+                    currentPos: this.state.currentPos, 
+                    currentIndex: this.state.currentIndex, 
+                    currentVolume: this.state.currentVolume
+                }, () => {
+                    this.props.db.get(CurrentSongIndexSetting).then(res => {
+                        var currentSongIndexSetting = res as Setting<number>;
+                        currentSongIndexSetting.Value = trackIdx;
+                        this.props.db.put(currentSongIndexSetting).then(res => {
+                            this.loadFiles();
+                        });
+                        
+                    });
+                });
+                
+                
+                break;
+        }
     }
 
     private play(): void {
@@ -220,7 +249,7 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
 
     private stopButtonClicked(evt: React.MouseEvent<HTMLDivElement>): void {
         var currentPos=mod(this.state.currentIndex, this.state.currentFile.length);
-        this.waveSurfer[currentPos].props.pos = 0;
+        //this.waveSurfer[currentPos].props.pos = 0;
         this.state.state[currentPos] = PlayerState.Stopped;
         this.setState({state: this.state.state, containerState: this.state.containerState, currentFile: this.state.currentFile, currentPos: this.state.currentPos, currentIndex: this.state.currentIndex, currentVolume: this.state.currentVolume});
     }

@@ -11,9 +11,10 @@ import * as PubSub from "pubsub-js";
 import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
 import {Setting} from "../base/setting";
-import {PlayerMessageType, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlayerMessageTypes_Play} from "../base/typedefs";
+import {PlayerMessageType, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlayerMessageTypes_Play, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_TrackChanged, PlaylistMessage_TrackRemoved, PlaylistMessage_Changed} from "../base/typedefs";
 import {DocumentType} from "../base/enums";
 import {shuffle} from "../base/util";
+import {TrackComponent} from "./TrackComponent";
 
 export interface PlaylistComponentProperties {
     db : ReactPlayerDB;
@@ -38,6 +39,9 @@ const PlaylistTableTh = Reactable.Th as PlaylistTableTh;
 type PlaylistRow = new () => Reactable.Tr<Track>;
 const PlaylistRow = Reactable.Tr as PlaylistRow;
 
+type PlaylistTableTd = new () => Reactable.Td;
+const PlaylistTableTd = Reactable.Td as PlaylistTableTd;
+
 type PlaylistTableTfoot = new () => Reactable.Tfoot;
 const PlaylistTableTfoot = Reactable.Tfoot as PlaylistTableTfoot;
 
@@ -60,7 +64,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
         };
         this.state = {
             currentPlaylist: allPlaylist,
-            displayedColumns: ["title", "album", "artist"],
+            displayedColumns: ["title", "album", "artist", "actions"],
             currentSongIndex: -1,
             isPlaying: false
         }
@@ -132,6 +136,19 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                                     isPlaying: this.state.isPlaying
                                 });
                                 break;
+                            }
+                            case DocumentType.Setting: {
+                                if (value._id == CurrentSongIndexSetting) {
+                                    var currentSongIndexSetting = value as Setting<number>;
+                                    currentSongIndex.Value = currentSongIndexSetting.Value;
+                                    this.setState({
+                                        currentPlaylist: this.state.currentPlaylist,
+                                        displayedColumns: this.state.displayedColumns,
+                                        currentSongIndex: currentSongIndex.Value,
+                                        isPlaying: this.state.isPlaying
+                                    });
+                                    break;
+                                }
                             }
                         }
                     });
@@ -289,40 +306,71 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
         });
     }
 
+    private updateComponentState(currentSongIndexSetting: Setting<number>, newValue: number, playlist: Playlist = this.state.currentPlaylist): void {
+        this.props.db.get(currentSongIndexSetting._id).then(doc => {
+            var currentSongIndexSettingDoc = doc as Setting<number>;
+            currentSongIndexSettingDoc.Value = newValue;
+            this.props.db.put(currentSongIndexSettingDoc).then(response => {
+                currentSongIndexSetting.Value = currentSongIndexSettingDoc.Value;
+                this.setState({
+                    currentPlaylist: playlist,
+                    displayedColumns: this.state.displayedColumns,
+                    currentSongIndex: currentSongIndexSettingDoc.Value,
+                    isPlaying: true
+                });
+            }, reason => {
+                console.log("error: " + reason);
+            });
+        })
+    }
+
+    private playlistEvent(event: PlaylistMessageTypes, trackIdx: number): void {
+        switch(event) {
+            case PlaylistMessage_TrackRemoved:
+                var currentSongIndexSetting = this.settings.find((setting, index, arr) => setting._id == CurrentSongIndexSetting) as Setting<number>;
+                if (currentSongIndexSetting != null) {
+                    var currentSongIndex = currentSongIndexSetting.Value;
+                    var loadedTracks = [currentSongIndex - 1, currentSongIndex, currentSongIndex + 1];
+                    if (loadedTracks.findIndex(t => t == trackIdx) == -1) {
+                        var tracks = this.state.currentPlaylist.Tracks.filter((track, idx, arr) => idx != trackIdx);
+                        this.state.currentPlaylist.Tracks = tracks;
+                        if (currentSongIndex > trackIdx)
+                            this.updateComponentState(currentSongIndexSetting, currentSongIndex - 1);
+                        else if (currentSongIndex < trackIdx)
+                            this.updateComponentState(currentSongIndexSetting, currentSongIndex);
+                        this.props.db.get(this.state.currentPlaylist._id).then((response) => {
+                            var list = response as Playlist;
+                            list.Tracks = tracks;
+                            this.props.db.put(list).then(res => {
+                                PubSub.publish(PlaylistMessage_Changed, list._id);
+                            });
+                        });
+                    }
+                }
+                break;
+            // case PlaylistMessage_TrackChanged:
+            //     var newIndex = this.state.currentPlaylist.Tracks.indexOf(data);
+            //     var currentSongIndexSetting = this.settings.find((setting, index, arr) => setting._id == CurrentSongIndexSetting) as Setting<number>;
+            //     if (currentSongIndexSetting != null) {
+            //         this.updateComponentState(currentSongIndexSetting, newIndex);
+            //     //     PubSub.publish(PlaylistMessage_TrackChanged, {});
+            //     }
+            //     break;
+        }
+    }
+
     private playerEvent(event: PlayerMessageTypes, data: any): void {
         switch(event) {
             case PlayerMessageTypes_Play:
                 break;
             case PlayerMessageTypes_Forward:
                 var currentSongIndex = this.settings.find((value, index, obj) => value._id == CurrentSongIndexSetting) as Setting<number>;
-                currentSongIndex.Value = currentSongIndex.Value + 1;
-                this.props.db.get(currentSongIndex._id).then(doc => {
-                    var blub = doc as Setting<number>;
-                    blub.Value = currentSongIndex.Value;
-                    this.props.db.put(blub).then(response => {
-                        this.setState({
-                            currentPlaylist: this.state.currentPlaylist,
-                            displayedColumns: this.state.displayedColumns,
-                            currentSongIndex: currentSongIndex.Value,
-                            isPlaying: true
-                        });
-                    }, reason => {
-                        console.log("error: " + reason);
-                    });
-                })
+                this.updateComponentState(currentSongIndex, currentSongIndex.Value + 1);
                 
                 break;
             case PlayerMessageTypes_Backward:
                 var currentSongIndex = this.settings.find((value, index, obj) => value._id == CurrentSongIndexSetting) as Setting<number>;
-                currentSongIndex.Value = currentSongIndex.Value - 1;
-                this.props.db.put(currentSongIndex).then(response => {
-                    this.setState({
-                        currentPlaylist: this.state.currentPlaylist,
-                        displayedColumns: this.state.displayedColumns,
-                        currentSongIndex: currentSongIndex.Value,
-                        isPlaying: true
-                    });
-                });
+                this.updateComponentState(currentSongIndex, currentSongIndex.Value - 1)
                 break;
         }
     }
@@ -359,6 +407,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
 
     public componentDidMount() : void {
         this.tokens.push(PubSub.subscribe(PlayerMessageType, (event: PlayerMessageTypes, data: any) => { this.playerEvent(event, data); }));
+        this.tokens.push(PubSub.subscribe(PlaylistMessageType, (event: PlaylistMessageTypes, trackIdx: number) => { this.playlistEvent(event, trackIdx); }));
         window.document.addEventListener("dragover", (event) => {
             event.stopPropagation();
             event.preventDefault();
@@ -374,18 +423,34 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
     public render(): JSX.Element {
         var columns: JSX.Element[] = [];
         for(var colName of this.state.displayedColumns) {
-            columns.push(<PlaylistTableTh column={colName} key={colName}>
-                <strong className="name-header">{colName}</strong>
-            </PlaylistTableTh>);
+            columns.push(
+                <PlaylistTableTh column={colName} key={colName}>
+                    <strong className="name-header">{colName}</strong>
+                </PlaylistTableTh>
+            );
         }
         var rows: JSX.Element[] = [];
         var i = 0;
         for(var track of this.state.currentPlaylist.Tracks) {
+            var tds: JSX.Element[] = [];
+            this.state.displayedColumns.forEach(col => tds.push(
+                <PlaylistTableTd column={col}>
+                    <TrackComponent db={this.props.db} trackIdx={i} value={(col != "actions") ? track[col] : col}/>
+                </PlaylistTableTd>
+            ));
             if (this.state.isPlaying && (i==this.state.currentSongIndex)) {
-                rows.push(<PlaylistRow data={track} className="reactable-current-song" />);
+                rows.push(
+                    <PlaylistRow className="reactable-current-song">
+                        {tds}
+                    </PlaylistRow>
+                );
             }
             else {
-                rows.push(<PlaylistRow data={track} />);
+                rows.push(
+                    <PlaylistRow>
+                        {tds}
+                    </PlaylistRow>
+                );
             }
             
             i++;
@@ -393,7 +458,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
         return (
             <div>
                 <div id="drop-zone" className="hidden" ref={r => this.dropZone = r} onDragLeave={evt => this.dropZoneDragLeave(evt)} onDragOver={evt => this.dropZoneDragOver(evt)} onDrop={evt => this.dropZoneDrop(evt)}>Drag &amp; Drop Files Here</div>
-                <PlaylistTable id="demo-table" sortable={this.state.displayedColumns}>
+                <PlaylistTable id="demo-table">
                     <PlaylistTableHeader>
                         {columns}
                     </PlaylistTableHeader>

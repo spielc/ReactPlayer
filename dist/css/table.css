@@ -33,9 +33,9 @@ tr.reactable-footer {
   text-align: center;
 }
 
-#demo-table th {
+/*#demo-table th {
   cursor: pointer;
-}
+}*/
 
 #demo-table th.reactable-header-sort-desc, #demo-table th.reactable-header-sort-asc {
   background-color: #474747;
@@ -94,4 +94,3 @@ td {
   padding: 10px;
   border: 1px solid #373737;
  }
-

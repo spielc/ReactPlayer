@@ -15,5 +15,6 @@ export interface Attachments {
 export interface Track extends ID3.Tag {
     _id: string;
     _attachments: Attachments;
-    DocType: DocumentType; 
+    DocType: DocumentType;
+    [props: string]: any;
 }
