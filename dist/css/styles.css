@@ -187,12 +187,8 @@ body, html{
 ---------------------------*/
 
 #playlist {
-	position: relative;
-	display: -webkit-flex;
-	display: flex;
-	-webkit-flex: 3;
-	flex: 3;
-	text-align: left;
+	position: fixed;
+	top: 60px;
 }
 
 /*	Currently playing track details	*/

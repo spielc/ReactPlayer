@@ -54,13 +54,13 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
         return (
             <div>
                 <div hidden={(this.state.currentIndex % 3) != 0}>
-                    <WaveSurfer audioFile={this.state.currentFile[0]} playing={this.state.state[0]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(this.createDummyMouseEvent())} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[0]=r } } />
+                    <WaveSurfer audioFile={this.state.currentFile[0]} playing={this.state.state[0]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(this.createDummyMouseEvent())} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[0]=r } } options={ {height: 60} } />
                 </div>
                 <div hidden={(this.state.currentIndex % 3) != 1}>
-                    <WaveSurfer audioFile={this.state.currentFile[1]} playing={this.state.state[1]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(this.createDummyMouseEvent())} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[1]=r } } />
+                    <WaveSurfer audioFile={this.state.currentFile[1]} playing={this.state.state[1]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(this.createDummyMouseEvent())} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[1]=r } } options={ {height: 60} } />
                 </div>
                 <div hidden={(this.state.currentIndex % 3) != 2}>
-                    <WaveSurfer audioFile={this.state.currentFile[2]} playing={this.state.state[2]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(this.createDummyMouseEvent())} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[2]=r } } />
+                    <WaveSurfer audioFile={this.state.currentFile[2]} playing={this.state.state[2]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(this.createDummyMouseEvent())} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[2]=r } } options={ {height: 60} } />
                 </div>
                 <div id="container" className={this.state.containerState}>
                     <div className="player-control">
