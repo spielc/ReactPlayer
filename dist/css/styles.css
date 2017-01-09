@@ -182,13 +182,18 @@ body, html{
 	left: 13px;
 }
 
+wave {
+	position: fixed;
+	top: 60px;
+}
+
 /*---------------------------
 		Playlist
 ---------------------------*/
 
 #playlist {
 	position: fixed;
-	top: 60px;
+	top: 90px;
 }
 
 /*	Currently playing track details	*/
