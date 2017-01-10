@@ -182,9 +182,12 @@ body, html{
 	left: 13px;
 }
 
-wave {
-	position: fixed;
-	top: 60px;
+wave, wave wave {
+	position: fixed !important;
+	top: 60px !important;
+	bottom: calc(100% - 90px) !important;
+	z-index: 10 !important;
+	width: 100%;
 }
 
 /*---------------------------
@@ -192,7 +195,7 @@ wave {
 ---------------------------*/
 
 #playlist {
-	position: fixed;
+	position: absolute;
 	top: 90px;
 }
 
