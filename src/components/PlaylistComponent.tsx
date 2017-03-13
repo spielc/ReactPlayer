@@ -1,5 +1,3 @@
-//<div id="shuffle-button" title="Shuffle Off"><i className="fa fa-random"></i></div>
-                        //<div id="repeat-button" title="Repeat Off"><i className="fa fa-refresh"><span>1</span></i></div>
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import * as Reactable from "reactable";
@@ -120,7 +118,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                 live: true
             }).on("change", (args) => {
                 if (args.id) {
-                    var changeArgs = args as PouchDB.Core.ChangeResponse;
+                    var changeArgs = args; //as PouchDB.Core.ChangeResponse;
                     this.props.db.get(args.id).then((value) => {
                         switch(value.DocType) {
                             case DocumentType.Track: {
@@ -180,7 +178,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                 // merge the two created track-objects
                 var resultingTrack: Track = {
                     _id: `track_${track1._id + track2._id}`,
-                    _attachments: (track1._attachments != null) ? track1._attachments : track2._attachments,
+                    path: track1.path + track2.path,
                     DocType: DocumentType.Track,
                     title: track1.title + track2.title,
                     artist: track1.artist + track2.artist,
@@ -195,7 +193,9 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                 }
                 return this.props.db.put(resultingTrack).then((response)=>{
                     if (response.ok) {
-                        console.log(`File '${file.name}' successfully added to the database...`); 
+                        new Notification('Playlist changed', {
+                            body: `File '${file.name}' successfully added to the database...`
+                        });
                     }
                 });
             }
@@ -213,12 +213,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                 var hash = sha256.sha256(dataBuffer);
                 var track: Track = {
                     _id: hash,
-                    _attachments: {
-                        attachmentId: {
-                            type: file.type,
-                            data: file
-                        },
-                    },
+                    path: file.path,
                     DocType: DocumentType.Track,
                     title: "",
                     artist: "",
@@ -248,7 +243,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
                 ID3.parse(dataBuffer).then((tag) => {
                     var track: Track = {
                         _id: "",
-                        _attachments: null,
+                        path: "",
                         DocType: DocumentType.Track,
                         album: tag.album,
                         artist: tag.artist,
@@ -273,7 +268,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
         var attachmentId = `blob_${hash}`;
         var track: Track = {
             _id: hash,
-            _attachments: {},
+            path: "",
             DocType: DocumentType.Track,
             album: tag.album,
             artist: tag.artist,

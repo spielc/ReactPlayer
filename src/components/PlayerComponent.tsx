@@ -2,6 +2,7 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import WaveSurfer from "react-wavesurfer";
 import * as PubSub from "pubsub-js";
+import {readFile} from "fs";
 
 import {PlayerState} from "../base/enums";
 import {Track} from "../base/track";
@@ -17,7 +18,7 @@ export interface PlayerComponentProperties {
 interface PlayerComponentState {
     state: PlayerState[];
     containerState: "enabled" | "disabled";
-    currentFile: Blob[];
+    currentFile: string[]; //TODO: this has to be changed to a string[]
     currentPos: number[];
     currentIndex: number;
     currentVolume: number;
@@ -39,7 +40,7 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
     constructor(props: PlayerComponentProperties, context?: any) {
         super(props, context);
         /*this.playlist=["", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/01- Intro.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/02- Her Voice Resides.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/03- 4 Words (To Choke Upon).mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/04- Tears Don`t Fall.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/05- Suffocating Under Words Of Sorrow (What Can I Do).mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/06- Hit The Floor.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/07- All These Things I Hate (Revolve Around Me).mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/08- Hand Of Blood.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/09- Room 409.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/10- The Poison.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/11- 10 Years Today.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/12- Cries In Vain.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/13- Spit You Out.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/14- The End.mp3", ""];*/
-        this.state= { state : [PlayerState.Loaded, PlayerState.Loaded, PlayerState.Loaded], containerState : "disabled", currentFile : [], currentPos : [0, 0, 0], currentIndex : 1, currentVolume : 0.5 };
+        this.state= { state : [PlayerState.Loaded, PlayerState.Loaded, PlayerState.Loaded], containerState : "disabled", currentFile : ["", "", ""], currentPos : [0, 0, 0], currentIndex : 1, currentVolume : 0.5 };
         this.waveSurfer=[];
         // TODO we have to get this using pubsub-event 
         this.loadFiles();
@@ -54,13 +55,13 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
         return (
             <div>
                 <div hidden={(this.state.currentIndex % 3) != 0}>
-                    <WaveSurfer audioFile={this.state.currentFile[0]} playing={this.state.state[0]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(this.createDummyMouseEvent())} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[0]=r } } options={ {height: 30} } />
+                    <WaveSurfer audioFile={(this.state.currentFile[0].length == 0) ? new Blob() : this.state.currentFile[0]} playing={this.state.state[0]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(this.createDummyMouseEvent())} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[0]=r } } options={ {height: 30} } />
                 </div>
                 <div hidden={(this.state.currentIndex % 3) != 1}>
-                    <WaveSurfer audioFile={this.state.currentFile[1]} playing={this.state.state[1]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(this.createDummyMouseEvent())} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[1]=r } } options={ {height: 30} } />
+                    <WaveSurfer audioFile={(this.state.currentFile[1].length == 0) ? new Blob() : this.state.currentFile[1]} playing={this.state.state[1]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(this.createDummyMouseEvent())} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[1]=r } } options={ {height: 30} } />
                 </div>
                 <div hidden={(this.state.currentIndex % 3) != 2}>
-                    <WaveSurfer audioFile={this.state.currentFile[2]} playing={this.state.state[2]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(this.createDummyMouseEvent())} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[2]=r } } options={ {height: 30} } />
+                    <WaveSurfer audioFile={(this.state.currentFile[2].length == 0) ? new Blob() : this.state.currentFile[2]} playing={this.state.state[2]==PlayerState.Playing} pos={0} volume={this.state.currentVolume} onReady={()=>this.onReady()} onFinish={(evt)=>this.trackChange(this.createDummyMouseEvent())} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[2]=r } } options={ {height: 30} } />
                 </div>
                 <div id="container" className={this.state.containerState}>
                     <div className="player-control">
@@ -86,7 +87,7 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
                     var setting = res as Setting<number>
                     if (setting != null) {
                         var indizes = [setting.Value - 1, setting.Value, setting.Value + 1]
-                        var files: Blob[] = [];
+                        var files: string[] = [];
                         var keys: string[] = [];
                         var invalidIndizes = 0;
                         for (var i=0;i<indizes.length;i++) {
@@ -99,13 +100,11 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
                         }
                         this.props.db.allDocs({attachments: true, include_docs: true, keys: keys}).then((response) => {
                             for(var i=0;i<keys.length;i++) {
-                                var file = new Blob();
+                                var file = "";
                                 var key = keys[i];
                                 if (key != "") {
                                     var track = response.rows[i].doc as Track;
-                                    var trackData = track._attachments["attachmentId"].data as any;
-                                    var base64Data = trackData as string;
-                                    file = this.base64ToBlob(base64Data);
+                                    file = track.path;
                                 }
                                 
                                 files[i] = file;
@@ -210,7 +209,9 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
                 stopPropagation: () => {},
                 AT_TARGET: 0,
                 BUBBLING_PHASE: 0,
-                CAPTURING_PHASE: 0
+                CAPTURING_PHASE: 0,
+                scoped: false,
+                deepPath: () => new EventTarget[0]
             },
             preventDefault: () => {},
             stopPropagation: () => {},
@@ -222,7 +223,7 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
 
     private trackChangeBtnClassName(isForwardBtn: boolean): string {
         var changeValue = (isForwardBtn) ? 1 : -1;
-        return (this.state.currentFile[mod((this.state.currentIndex + changeValue), 3)] != null && this.state.currentFile[mod((this.state.currentIndex + changeValue), 3)].size!=0) ? "enabled" : "disabled";
+        return (this.state.currentFile[mod((this.state.currentIndex + changeValue), 3)] != null && this.state.currentFile[mod((this.state.currentIndex + changeValue), 3)]) ? "enabled" : "disabled";
     }
 
     private posChange(event: WaveSurferEventParams): void {
@@ -271,25 +272,32 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
             var playIndex = mod(newIndex, this.state.currentFile.length);
             var insertIndex = mod((newIndex + changeValue), this.state.currentFile.length);
             var trackToInsertIndex = newIndex + changeValue;
-            var promise = new Promise<Blob>((resolve, reject) => {
+            var promise = new Promise<string>((resolve, reject) => {
                 this.props.db.get("All").then((response) => {
                     var list = response as Playlist;
-                    if (list != null && list.Tracks.length > trackToInsertIndex) {
-                        this.props.db.allDocs({ attachments: true, include_docs: true, key: list.Tracks[trackToInsertIndex]._id }).then((res) => {
-                            if (res.rows.length == 1) {
-                                var track = res.rows[0].doc as Track;
-                                var data = track._attachments["attachmentId"].data as any;
-                                var base64Data = data as string;
-                                //console.log(attachment);
-                                var file = this.base64ToBlob(base64Data);
-                                resolve(file);
-                            }
-                            else 
-                                resolve(new Blob());
-                        });
+                    if (list != null) {
+                        this.props.db.get(list.Tracks[playIndex]._id).then(value => {
+                            var track = value as Track;
+                            new Notification('Now playing', {
+                                body: `${track.title} from ${track.artist}`
+                            });
+                        })
+                        if (list.Tracks.length > trackToInsertIndex) {
+                            // TODO retrieve both track with id list.Tracks[trackToInsertIndex]._id and list.Tracks[playIndex]._id
+                            this.props.db.allDocs({ attachments: true, include_docs: true, key: list.Tracks[trackToInsertIndex]._id }).then((res) => {
+                                if (res.rows.length == 1) {
+                                    var track = res.rows[0].doc as Track;
+                                    resolve(track.path);
+                                }
+                                else 
+                                    resolve("");
+                            });
+                        }
+                        else
+                            resolve("");
                     }
                     else {
-                        resolve(new Blob());
+                        resolve("");
                     }
                 });
             }).then(value => {

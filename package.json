@@ -1,40 +1,36 @@
 {
   "name": "reactplayer",
   "version": "1.0.0",
-  "description": "HTML5 audio player using react",
-  "main": "index.js",
+  "description": "",
+  "main": "main.js",
   "scripts": {
-    "prepublish": "typings install",
-    "watch": "webpack --watch"
+    "start": "electron Output",
+    "compile": "tsc",
+    "clean": "rimraf Output",
+    "copy": "bash devtools/copy-files.sh",
+    "build": "npm run clean && npm run copy && npm run compile"
   },
   "author": "Christoph Spielmann",
-  "license": "ISC",
-  "devDependencies": {
-    "@types/es6-shim": "^0.31.32",
-    "@types/node": "^6.0.51",
-    "source-map-loader": "^0.1.5",
-    "ts-loader": "^1.2.2",
-    "typescript": "^2.0.6",
-    "typings": "^1.3.3",
-    "webpack": "^1.13.1"
-  },
+  "license": "LGPL-3.0",
   "dependencies": {
+    "electron": "^1.6.2",
+    "id3-parser": "^1.2.0",
+    "js-sha256": "^0.5.0",
+    "pouchdb": "^6.1.2",
+    "pouchdb-browser": "^6.1.2",
+    "pubsub-js": "^1.5.5",
+    "react": "^15.4.2",
+    "react-dom": "^15.4.2",
+    "react-wavesurfer": "^0.8.3",
+    "reactable": "^0.14.1",
+    "wavesurfer.js": "^1.3.4"
+  },
+  "devDependencies": {
+    "@types/electron": "^1.4.33",
     "@types/pouchdb": "^5.4.28",
-    "@types/promises-a-plus": "0.0.27",
     "@types/pubsub-js": "^1.5.17",
-    "@types/react": "^0.14.50",
-    "@types/react-dom": "^0.14.19",
-    "fixed-data-table": "^0.6.3",
-    "griddle-react": "^0.6.1",
-    "id3-parser": "^1.0.2",
-    "js-sha256": "^0.3.0",
-    "pouchdb": "^5.4.5",
-    "pouchdb-browser": "^5.4.5",
-    "pubsub-js": "^1.5.3",
-    "react": "^15.2.1",
-    "react-dom": "^15.2.1",
-    "react-wavesurfer": "^0.8.2",
-    "reactable": "^0.14.0",
-    "wavesurfer.js": "^1.2.2"
+    "@types/react": "^15.0.15",
+    "@types/react-dom": "^0.14.23",
+    "rimraf": "^2.6.1"
   }
 }
