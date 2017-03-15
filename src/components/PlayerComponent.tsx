@@ -7,7 +7,7 @@ import {readFile} from "fs";
 import {PlayerState} from "../base/enums";
 import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
-import {PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_Changed, PlaylistMessage_TrackChanged} from "../base/typedefs";
+import {PlayerMessageTypes_Play, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_Changed, PlaylistMessage_TrackChanged} from "../base/typedefs";
 import {Setting} from "../base/setting";
 import {mod} from "../base/util";
 
@@ -110,12 +110,8 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
                                 files[i] = file;
                             }
                             this.setState({
-                                state: this.state.state,
-                                containerState: this.state.containerState,
                                 currentFile: files,
-                                currentPos: this.state.currentPos,
-                                currentIndex: setting.Value,
-                                currentVolume: this.state.currentVolume
+                                currentIndex: setting.Value
                             }, callback);
                         });
                     }
@@ -154,15 +150,22 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
     }
 
     private play(): void {
+        this.props.db.get("All").then((response) => {
+            var list = response as Playlist;
+            if (list != null) {
+                this.props.db.get(list.Tracks[this.state.currentIndex]._id).then(value => {
+                    var track = value as Track;
+                    new Notification('Now playing', {
+                        body: `${track.title} from ${track.artist}`
+                    });
+                });
+            }
+        });
         this.state.state[mod(this.state.currentIndex, this.state.state.length)] = PlayerState.Playing;
         this.setState({
-            state: this.state.state, 
-            containerState: this.state.containerState, 
-            currentFile: this.state.currentFile, 
-            currentPos: this.state.currentPos, 
-            currentIndex: this.state.currentIndex, 
-            currentVolume: this.state.currentVolume
+            state: this.state.state
         });
+        PubSub.publish(PlayerMessageTypes_Play, {});
     }
 
     private createDummyMouseEvent(): React.MouseEvent<HTMLDivElement> {
@@ -233,32 +236,21 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
         }
     }
 
-    private base64ToBlob(base64EncodedData: string) : Blob {
-        var decodedData = atob(base64EncodedData);
-        // write the bytes of the string to an ArrayBuffer
-        var ab = new ArrayBuffer(decodedData.length);
-        var ia = new Uint8Array(ab);
-        for (var i = 0; i < decodedData.length; i++) {
-            ia[i] = decodedData.charCodeAt(i);
-        }
-
-        // write the ArrayBuffer to a blob, and you're done
-        //var bb = new Blob([ab]);
-        var bb = new Blob([ab]);
-        return bb;
-    }
-
     private stopButtonClicked(evt: React.MouseEvent<HTMLDivElement>): void {
         var currentPos=mod(this.state.currentIndex, this.state.currentFile.length);
         //this.waveSurfer[currentPos].props.pos = 0;
         this.state.state[currentPos] = PlayerState.Stopped;
-        this.setState({state: this.state.state, containerState: this.state.containerState, currentFile: this.state.currentFile, currentPos: this.state.currentPos, currentIndex: this.state.currentIndex, currentVolume: this.state.currentVolume});
+        this.setState({
+            state: this.state.state
+        });
     }
 
     private volumeChange(isIncrease: boolean): void {
         const volumeChangeValue = (isIncrease) ? 0.1 : -0.1;
         var newVolume = this.state.currentVolume + volumeChangeValue;
-        this.setState({state: this.state.state, containerState: this.state.containerState, currentFile: this.state.currentFile, currentPos: this.state.currentPos, currentIndex: this.state.currentIndex, currentVolume: newVolume});
+        this.setState({
+            currentVolume: newVolume
+        });
     }
 
     private trackChange(evt: React.MouseEvent<HTMLDivElement>): void {
@@ -276,21 +268,16 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
                 this.props.db.get("All").then((response) => {
                     var list = response as Playlist;
                     if (list != null) {
-                        this.props.db.get(list.Tracks[playIndex]._id).then(value => {
+                        this.props.db.get(list.Tracks[newIndex]._id).then(value => {
                             var track = value as Track;
                             new Notification('Now playing', {
                                 body: `${track.title} from ${track.artist}`
                             });
-                        })
+                        });
                         if (list.Tracks.length > trackToInsertIndex) {
-                            // TODO retrieve both track with id list.Tracks[trackToInsertIndex]._id and list.Tracks[playIndex]._id
-                            this.props.db.allDocs({ attachments: true, include_docs: true, key: list.Tracks[trackToInsertIndex]._id }).then((res) => {
-                                if (res.rows.length == 1) {
-                                    var track = res.rows[0].doc as Track;
-                                    resolve(track.path);
-                                }
-                                else 
-                                    resolve("");
+                            this.props.db.get(list.Tracks[trackToInsertIndex]._id).then((value) => {
+                                var track = value as Track;
+                                resolve(track.path);
                             });
                         }
                         else
@@ -306,17 +293,16 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
                 this.state.state[insertIndex] = PlayerState.Loaded;
                 this.setState({ 
                     state: this.state.state, 
-                    containerState: this.state.containerState, 
-                    currentFile: this.state.currentFile, 
-                    currentPos: this.state.currentPos, 
-                    currentIndex: this.state.currentIndex, 
-                    currentVolume: this.state.currentVolume
+                    currentFile: this.state.currentFile 
                 });
             });
             
             this.state.state[playIndex] = PlayerState.Playing;
             this.state.state[loadIndex] = PlayerState.Loaded;
-            this.setState({state: this.state.state, containerState: this.state.containerState, currentFile: this.state.currentFile, currentPos: this.state.currentPos, currentIndex: newIndex, currentVolume: this.state.currentVolume});
+            this.setState({
+                state: this.state.state, 
+                currentIndex: newIndex
+            });
             var msgType = (title == "Next") ? PlayerMessageTypes_Forward : PlayerMessageTypes_Backward;
             PubSub.publish(msgType, {});
         }
@@ -332,6 +318,9 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
                 this.state.state[this.state.currentIndex] = PlayerState.Playing;
                 break;
         }
-        this.setState({state: this.state.state, containerState: "enabled", currentFile: this.state.currentFile, currentPos: this.state.currentPos, currentIndex: this.state.currentIndex, currentVolume: this.state.currentVolume});
+        this.setState({
+            state: this.state.state, 
+            containerState: "enabled"
+        });
     }
 }

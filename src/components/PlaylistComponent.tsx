@@ -355,19 +355,17 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
     }
 
     private playerEvent(event: PlayerMessageTypes, data: any): void {
+        var currentSongIndex = this.settings.find((value, index, obj) => value._id == CurrentSongIndexSetting) as Setting<number>;
+        var currentValue = currentSongIndex.Value;
         switch(event) {
-            case PlayerMessageTypes_Play:
-                break;
             case PlayerMessageTypes_Forward:
-                var currentSongIndex = this.settings.find((value, index, obj) => value._id == CurrentSongIndexSetting) as Setting<number>;
-                this.updateComponentState(currentSongIndex, currentSongIndex.Value + 1);
-                
+                currentValue += 1;
                 break;
             case PlayerMessageTypes_Backward:
-                var currentSongIndex = this.settings.find((value, index, obj) => value._id == CurrentSongIndexSetting) as Setting<number>;
-                this.updateComponentState(currentSongIndex, currentSongIndex.Value - 1)
+                currentValue -= 1;
                 break;
         }
+        this.updateComponentState(currentSongIndex, currentValue);
     }
 
     private dropZoneDrop(event: React.DragEvent<HTMLDivElement>): void {
