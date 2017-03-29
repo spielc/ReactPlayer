@@ -3,17 +3,16 @@ import * as ReactDOM from "react-dom";
 import WaveSurfer from "react-wavesurfer";
 import * as PubSub from "pubsub-js";
 import {readFile} from "fs";
+import {request, RequestOptions} from "http";
+import md5 = require("md5");
 
-import {PlayerState} from "../base/enums";
+import {ComponentWithSettings, ComponentWithSettingsProperties} from "./ComponentWithSettings";
+import {PlayerState, DocumentType} from "../base/enums";
 import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
 import {PlayerMessageTypes_Play, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_Changed, PlaylistMessage_TrackChanged} from "../base/typedefs";
 import {Setting} from "../base/setting";
 import {mod} from "../base/util";
-
-export interface PlayerComponentProperties {
-    db : ReactPlayerDB;
-}
 
 interface PlayerComponentState {
     state: PlayerState[];
@@ -27,17 +26,22 @@ interface PlayerComponentState {
 interface WaveSurferEventParams {
         wavesurfer: any;
         originalArgs: any[];
-    }
+}
 
-export class PlayerComponent extends React.Component<PlayerComponentProperties, PlayerComponentState> {
+const EnableScrobblingSetting = "PlayerComponent.Settings.EnableScrobbling";
+const LastFMSessionKeySetting = "PlayerComponent.Settings.EnableLastSessionKey";
 
+export class PlayerComponent extends ComponentWithSettings<ComponentWithSettingsProperties, PlayerComponentState> {
+    
     private waveSurfer: WaveSurfer[];
     //private playlist: string[];
     private oldVolume: number;
     private forwardBtn: HTMLDivElement;
     private tokens: any[];
+    private trackDurationHalf: number;
+    private trackStartPlaybackTimestamp: number;
 
-    constructor(props: PlayerComponentProperties, context?: any) {
+    constructor(props: ComponentWithSettingsProperties, context?: any) {
         super(props, context);
         /*this.playlist=["", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/01- Intro.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/02- Her Voice Resides.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/03- 4 Words (To Choke Upon).mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/04- Tears Don`t Fall.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/05- Suffocating Under Words Of Sorrow (What Can I Do).mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/06- Hit The Floor.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/07- All These Things I Hate (Revolve Around Me).mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/08- Hand Of Blood.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/09- Room 409.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/10- The Poison.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/11- 10 Years Today.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/12- Cries In Vain.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/13- Spit You Out.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/14- The End.mp3", ""];*/
         this.state= { state : [PlayerState.Loaded, PlayerState.Loaded, PlayerState.Loaded], containerState : "disabled", currentFile : ["", "", ""], currentPos : [0, 0, 0], currentIndex : 1, currentVolume : 0.5 };
@@ -45,6 +49,8 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
         // TODO we have to get this using pubsub-event 
         this.loadFiles();
         this.tokens = [];
+        this.trackDurationHalf = -1;
+        this.trackStartPlaybackTimestamp = -1;
     }    
 
     public componentDidMount() : void {
@@ -73,10 +79,34 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
                         <div id="mute-button" title="Toggle mute" onClick={evt=>{}}><i className="fa fa-volume-off"></i></div>
                         <div id="volume-down-button" title="Volume Down" onClick={evt=>this.volumeChange(false)}><i className="fa fa-volume-down"/></div>
                         <div id="volume-up-button" title="Volume Up" onClick={evt=>this.volumeChange(true)}><i className="fa fa-volume-up"/></div>
+                        <div id="settings-button" title="Settings" onClick={evt=>{}}><i className="fa fa-cog"/></div>
                     </div>
                 </div>
             </div>
             );
+    }
+
+    protected loadSettings(response: PouchDB.Core.AllDocsResponse<Track | Playlist | Setting<any>>) {
+        if (response.rows.length==0) {
+            var enableScrobblingSetting: Setting<boolean> = {
+                _id: EnableScrobblingSetting,
+                DocType: DocumentType.Setting,
+                Value: false,
+                IsVisible: true
+            };
+            this.props.db.put(enableScrobblingSetting);
+            this.settings.push(enableScrobblingSetting);
+            var lastFMSessionKeySetting: Setting<string> = {
+                _id: LastFMSessionKeySetting,
+                DocType: DocumentType.Setting,
+                Value: "",
+                IsVisible: true
+            };
+            this.props.db.put(lastFMSessionKeySetting);
+            this.settings.push(lastFMSessionKeySetting);
+        }
+        else 
+            this.settings = response.rows.map(row => row.doc).map(doc => doc as Setting<any>);
     }
 
     private loadFiles(callback?: () => any): void {
@@ -229,11 +259,88 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties, 
         return (this.state.currentFile[mod((this.state.currentIndex + changeValue), 3)] != null && this.state.currentFile[mod((this.state.currentIndex + changeValue), 3)]) ? "enabled" : "disabled";
     }
 
+    // testdata for generating the api-signature                                                                                                                                                 
+    //api_keybef50d03aa4fa431554f3bac85147580artistCalibanmethodtrack.scrobblesk2b19d6abdccc11a6825bde6ba305e16ctimestamp1461172285trackKing66717d5c66601f8f7789cd9f93444252 => 4d0e837d63a2618c408736b3dc9e0ced
+    private sign(data: Map<string, string>): string {
+        let retValue = "";
+        for(let entry of data) {
+            retValue += entry[0] + entry[1];
+        }
+        retValue += "66717d5c66601f8f7789cd9f93444252";
+        return md5(retValue);
+    }
+
     private posChange(event: WaveSurferEventParams): void {
         var pos = Math.floor(event.originalArgs[0]);
         if (pos == 0) {
             event.wavesurfer.drawBuffer();
+            let trackDuration = Math.ceil(event.wavesurfer.getDuration());
+            if (trackDuration > 30 && this.trackDurationHalf < 0) {
+                let now = new Date(); 
+                this.trackStartPlaybackTimestamp = Math.floor(now.valueOf() / 1000);
+                this.trackDurationHalf = trackDuration / 2;
+                console.log(`track.length=${trackDuration}`);
+            }
         }
+        else if (this.trackDurationHalf > 0 && ((pos > this.trackDurationHalf) || (pos > 240)))  {
+            // var enableScrobblingSetting = this.settings.find((setting, index, obj) => { return setting._id == EnableScrobblingSetting }) as Setting<boolean>;
+            // var lastFMSessionKeySetting = this.settings.find((setting, index, obj) => { return setting._id == LastFMSessionKeySetting }) as Setting<string>;
+            // if (enableScrobblingSetting && enableScrobblingSetting.Value && lastFMSessionKeySetting && (lastFMSessionKeySetting.Value.length > 0)) {
+                this.props.db.get("All").then((response) => {
+                    let list = response as Playlist;
+                    if (list != null) {
+                        this.props.db.get(list.Tracks[this.state.currentIndex]._id).then(value => {
+                            let track = value as Track;
+                            /*let track = {
+                                artist: "Caliban",
+                                title: "King"
+                            };*/
+                            let map = new Map<string,string>();
+                            map.set("album", track.album);
+                            map.set("api_key", "bef50d03aa4fa431554f3bac85147580");
+                            map.set("artist", track.artist);
+                            map.set("method", "track.scrobble");
+                            map.set("sk", "2b19d6abdccc11a6825bde6ba305e16c");
+                            map.set("timestamp", this.trackStartPlaybackTimestamp.toString());
+                            //map.set("timestamp", "1461172285");
+                            map.set("track", track.title);
+                            let signature = this.sign(map);
+                            map.set("api_sig", signature);
+                            map.set("format", "json");
+                            let requestParams = "";
+                            for(let entry of map) {
+                                requestParams += `${entry[0]}=${entry[1]}&`;
+                            }
+                            requestParams=requestParams.substr(0, requestParams.lastIndexOf("&"));
+                            let reqOptions: RequestOptions = {
+                                protocol: "http:",
+                                method: "POST",
+                                host: "ws.audioscrobbler.com",
+                                port: 80,
+                                headers: {
+                                    "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
+                                },
+                                path: "/2.0/"
+                            }
+                            let req = request(reqOptions, response => {
+                                response.addListener("data", chunk => {
+                                    let buf = chunk as Buffer;
+                                    let res = String.fromCharCode.apply(null, buf);
+                                    let i = 0;
+                                });
+                            });
+                            req.addListener("error", err => {
+                                let i = 0;
+                            });
+                            req.write(requestParams);
+                            req.end();
+                        });
+                    }
+                });
+            // }
+            this.trackDurationHalf = -1;
+        }
+
     }
 
     private stopButtonClicked(evt: React.MouseEvent<HTMLDivElement>): void {

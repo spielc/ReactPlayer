@@ -1,7 +1,12 @@
 import {DocumentType} from "./enums"
 
-export interface Setting<T> {
+export class Setting<T> {
     _id: string;
     Value: T;
-    DocType: DocumentType.Setting;  
+    DocType: DocumentType.Setting;
+
+    constructor(readonly IsVisible = false) {
+        
+    }
+
 }

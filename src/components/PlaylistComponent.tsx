@@ -13,10 +13,7 @@ import {PlayerMessageType, PlayerMessageTypes_Forward, PlayerMessageTypes_Backwa
 import {DocumentType} from "../base/enums";
 import {shuffle} from "../base/util";
 import {TrackComponent} from "./TrackComponent";
-
-export interface PlaylistComponentProperties {
-    db : ReactPlayerDB;
-}
+import {ComponentWithSettings, ComponentWithSettingsProperties} from "./ComponentWithSettings";
 
 export interface PlaylistComponentState {
     currentPlaylist: Playlist,
@@ -43,23 +40,20 @@ const PlaylistTableTd = Reactable.Td as PlaylistTableTd;
 type PlaylistTableTfoot = new () => Reactable.Tfoot;
 const PlaylistTableTfoot = Reactable.Tfoot as PlaylistTableTfoot;
 
-export class PlaylistComponent extends React.Component<PlaylistComponentProperties, PlaylistComponentState> {
-
-    private settings: Setting<any>[];
+export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettingsProperties, PlaylistComponentState> {
+    
     private tokens: any[];
     private dropZone: HTMLDivElement;
 
-    constructor(props: PlaylistComponentProperties, context?: any) {
+    constructor(props: ComponentWithSettingsProperties, context?: any) {
         super(props, context);
-        //var playlist = ["", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/01- Intro.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/02- Her Voice Resides.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/03- 4 Words (To Choke Upon).mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/04- Tears Don`t Fall.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/05- Suffocating Under Words Of Sorrow (What Can I Do).mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/06- Hit The Floor.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/07- All These Things I Hate (Revolve Around Me).mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/08- Hand Of Blood.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/09- Room 409.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/10- The Poison.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/11- 10 Years Today.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/12- Cries In Vain.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/13- Spit You Out.mp3", "/home/christoph/music/Bullet For My Valentine/Bullet For My Valentine - The Poison (2005)/14- The End.mp3", ""];
-        //this.parse(playlist[0]).then((tag)=>{ return tag; });
-        //this.db = new PouchDB("ReactPlayerDB");
 
         var allPlaylist: Playlist = {
             _id: "All",
             DocType: DocumentType.Playlist,
             Tracks: []
         };
+
         this.state = {
             currentPlaylist: allPlaylist,
             displayedColumns: ["title", "album", "artist", "actions"],
@@ -67,93 +61,6 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
             isPlaying: false
         }
 
-        var settingsSelectOptions: PouchDB.Core.AllDocsWithinRangeOptions = {
-            include_docs: true,
-            startkey: "PlaylistComponent.Settings.",
-            endkey: "PlaylistComponent.Settings.\uffff"
-        } 
-        this.props.db.allDocs(settingsSelectOptions).then(response => {
-            this.settings = [];
-            if (response.rows.length==0) {
-                var playlistnameSetting: Setting<string> = {
-                    _id: "PlaylistComponent.Settings.Playlistname",
-                    DocType: DocumentType.Setting,
-                    Value: "All"
-                };
-                this.props.db.put(playlistnameSetting);
-                this.settings.push(playlistnameSetting);
-                var currentSongIndexSetting: Setting<number> = {
-                    _id: CurrentSongIndexSetting,
-                    DocType: DocumentType.Setting,
-                    Value: 0
-                };
-                this.props.db.put(currentSongIndexSetting);
-                this.settings.push(currentSongIndexSetting);
-            }
-            else 
-                this.settings = response.rows.map(row => row.doc).map(doc => doc as Setting<any>);
-
-            var playlistName = this.settings.find((value, index, obj) => value._id == "PlaylistComponent.Settings.Playlistname") as Setting<string>;
-            var currentSongIndex = this.settings.find((value, index, obj) => value._id == CurrentSongIndexSetting) as Setting<number>;
-
-            this.props.db.put(allPlaylist).then((res) => {
-                
-            }).catch((reason) => {
-                this.props.db.get(playlistName.Value).then((response) => {
-                    var list = response as Playlist;
-                    if (list != null) {
-                        this.setState({
-                            currentPlaylist: list,
-                            displayedColumns: this.state.displayedColumns,
-                            currentSongIndex: currentSongIndex.Value,
-                            isPlaying: this.state.isPlaying
-                        });
-                    }
-                });
-            });
-
-            this.props.db.changes({
-                include_docs: true,
-                since: "now",
-                live: true
-            }).on("change", (args) => {
-                if (args.id) {
-                    var changeArgs = args; //as PouchDB.Core.ChangeResponse;
-                    this.props.db.get(args.id).then((value) => {
-                        switch(value.DocType) {
-                            case DocumentType.Track: {
-                                this.addTrackToPlaylist(changeArgs.id, playlistName.Value);
-                                break;
-                            }
-                            case DocumentType.Playlist: {
-                                var playlist = value as Playlist;
-                                this.setState({
-                                    currentPlaylist: playlist,
-                                    displayedColumns: this.state.displayedColumns,
-                                    currentSongIndex: currentSongIndex.Value,
-                                    isPlaying: this.state.isPlaying
-                                });
-                                break;
-                            }
-                            case DocumentType.Setting: {
-                                if (value._id == CurrentSongIndexSetting) {
-                                    var currentSongIndexSetting = value as Setting<number>;
-                                    currentSongIndex.Value = currentSongIndexSetting.Value;
-                                    this.setState({
-                                        currentPlaylist: this.state.currentPlaylist,
-                                        displayedColumns: this.state.displayedColumns,
-                                        currentSongIndex: currentSongIndex.Value,
-                                        isPlaying: this.state.isPlaying
-                                    });
-                                    break;
-                                }
-                            }
-                        }
-                    });
-                }
-            });
-            
-        });
         this.tokens = [];
     }
 
@@ -168,6 +75,89 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
     //     } 
         
     // }
+
+    protected loadSettings(response: PouchDB.Core.AllDocsResponse<Track | Playlist | Setting<any>>) {
+        if (response.rows.length==0) {
+            var playlistnameSetting: Setting<string> = {
+                _id: "PlaylistComponent.Settings.Playlistname",
+                DocType: DocumentType.Setting,
+                Value: "All",
+                IsVisible: false
+            };
+            this.props.db.put(playlistnameSetting);
+            this.settings.push(playlistnameSetting);
+            var currentSongIndexSetting: Setting<number> = {
+                _id: CurrentSongIndexSetting,
+                DocType: DocumentType.Setting,
+                Value: 0,
+                IsVisible: false
+            };
+            this.props.db.put(currentSongIndexSetting);
+            this.settings.push(currentSongIndexSetting);
+        }
+        else 
+            this.settings = response.rows.map(row => row.doc).map(doc => doc as Setting<any>);
+
+        var playlistName = this.settings.find((value, index, obj) => value._id == "PlaylistComponent.Settings.Playlistname") as Setting<string>;
+        var currentSongIndex = this.settings.find((value, index, obj) => value._id == CurrentSongIndexSetting) as Setting<number>;
+
+        this.props.db.put(this.state.currentPlaylist).then((res) => {
+            
+        }).catch((reason) => {
+            this.props.db.get(playlistName.Value).then((response) => {
+                var list = response as Playlist;
+                if (list != null) {
+                    this.setState({
+                        currentPlaylist: list,
+                        displayedColumns: this.state.displayedColumns,
+                        currentSongIndex: currentSongIndex.Value,
+                        isPlaying: this.state.isPlaying
+                    });
+                }
+            });
+        });
+
+        this.props.db.changes({
+            include_docs: true,
+            since: "now",
+            live: true
+        }).on("change", (args) => {
+            if (args.id) {
+                var changeArgs = args; //as PouchDB.Core.ChangeResponse;
+                this.props.db.get(args.id).then((value) => {
+                    switch(value.DocType) {
+                        case DocumentType.Track: {
+                            this.addTrackToPlaylist(changeArgs.id, playlistName.Value);
+                            break;
+                        }
+                        case DocumentType.Playlist: {
+                            var playlist = value as Playlist;
+                            this.setState({
+                                currentPlaylist: playlist,
+                                displayedColumns: this.state.displayedColumns,
+                                currentSongIndex: currentSongIndex.Value,
+                                isPlaying: this.state.isPlaying
+                            });
+                            break;
+                        }
+                        case DocumentType.Setting: {
+                            if (value._id == CurrentSongIndexSetting) {
+                                var currentSongIndexSetting = value as Setting<number>;
+                                currentSongIndex.Value = currentSongIndexSetting.Value;
+                                this.setState({
+                                    currentPlaylist: this.state.currentPlaylist,
+                                    displayedColumns: this.state.displayedColumns,
+                                    currentSongIndex: currentSongIndex.Value,
+                                    isPlaying: this.state.isPlaying
+                                });
+                                break;
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
 
     private handleFile(file: File): void {
         var promises = [this.createHash(file), this.createTag(file)];

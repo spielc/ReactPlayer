@@ -16,6 +16,7 @@
     "electron": "^1.6.2",
     "id3-parser": "^1.2.0",
     "js-sha256": "^0.5.0",
+    "md5": "^2.2.1",
     "pouchdb": "^6.1.2",
     "pouchdb-browser": "^6.1.2",
     "pubsub-js": "^1.5.5",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@types/electron": "^1.4.33",
+    "@types/md5": "^2.1.31",
     "@types/pouchdb": "^5.4.28",
     "@types/pubsub-js": "^1.5.17",
     "@types/react": "^15.0.15",
