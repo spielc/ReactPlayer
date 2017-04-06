@@ -5,12 +5,13 @@ import * as PubSub from "pubsub-js";
 import {readFile} from "fs";
 import {request, RequestOptions} from "http";
 import md5 = require("md5");
+import {ipcRenderer} from "electron";
 
 import {ComponentWithSettings, ComponentWithSettingsProperties} from "./ComponentWithSettings";
 import {PlayerState, DocumentType} from "../base/enums";
 import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
-import {PlayerMessageTypes_Play, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_Changed, PlaylistMessage_TrackChanged} from "../base/typedefs";
+import {PlayerMessageTypes_Play, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_Changed, PlaylistMessage_TrackChanged, WindowManagementMessage_Define, WindowManagementMessage_Show} from "../base/typedefs";
 import {Setting} from "../base/setting";
 import {mod} from "../base/util";
 
@@ -40,6 +41,7 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
     private tokens: any[];
     private trackDurationHalf: number;
     private trackStartPlaybackTimestamp: number;
+    private win: any;
 
     constructor(props: ComponentWithSettingsProperties, context?: any) {
         super(props, context);
@@ -55,6 +57,7 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
 
     public componentDidMount() : void {
         this.tokens.push(PubSub.subscribe(PlaylistMessageType, (event: PlaylistMessageTypes, trackIdx: number) => { this.playlistEvent(event, trackIdx); }));
+        // TODO send ipc-Message to Main-process which registers the Settings-dialog
     }
 
     public render(): JSX.Element {
@@ -79,7 +82,7 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
                         <div id="mute-button" title="Toggle mute" onClick={evt=>{}}><i className="fa fa-volume-off"></i></div>
                         <div id="volume-down-button" title="Volume Down" onClick={evt=>this.volumeChange(false)}><i className="fa fa-volume-down"/></div>
                         <div id="volume-up-button" title="Volume Up" onClick={evt=>this.volumeChange(true)}><i className="fa fa-volume-up"/></div>
-                        <div id="settings-button" title="Settings" onClick={evt=>{}}><i className="fa fa-cog"/></div>
+                        <div id="settings-button" title="Settings" onClick={evt=>this.openSettingsDialog()}><i className="fa fa-cog"/></div>
                     </div>
                 </div>
             </div>
@@ -149,6 +152,11 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
                 
             }
         });
+    }
+
+    private openSettingsDialog(): void {
+        // TODO fix this that the settings dialog gets opened
+        console.log(ipcRenderer.sendSync("synchronous-message", "ping"));
     }
 
     private playlistEvent(event: PlaylistMessageTypes, trackIdx: number): void {

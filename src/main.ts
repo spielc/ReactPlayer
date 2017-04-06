@@ -1,12 +1,16 @@
-import {app, BrowserWindow} from "electron";
+import {app, BrowserWindow, ipcMain} from "electron";
+import {WindowManagementMessage_Define, WindowManagementMessage_Show} from "./base/typedefs";
+
+const MainWindow = "MainWindow";
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
-let win;
+//let win: Electron.BrowserWindow;
+let windows = new Map<string, Electron.BrowserWindow>();
 
 function createWindow () {
     // Create the browser window.
-    win = new BrowserWindow({width: 800, height: 600});
+    let win = new BrowserWindow({width: 800, height: 600});
     win.maximize();
 
     // and load the index.html of the app.
@@ -22,7 +26,14 @@ function createWindow () {
         // when you should delete the corresponding element.
         win = null
     });
+    windows.set(MainWindow, win);
 }
+
+// TODO add ipc-messagehandler for the window-register- and window-show-events
+ipcMain.on("synchronous-message", (event, data) => {
+    console.log(data);
+    event.returnValue = data;
+})
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -39,6 +50,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("activate", () => {
+    let win = windows.get(MainWindow);
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (win === null) {

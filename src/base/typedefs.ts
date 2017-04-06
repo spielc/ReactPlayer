@@ -24,3 +24,7 @@ export const PlaylistMessage_TrackRemoved = PlaylistMessageType + ".TrackRemoved
 
 export const CurrentSongIndexSetting = "PlaylistComponent.Settings.CurrentSongIndex";
 
+export const WindowManagementMessageType = "WindowManagementMessage";
+export const WindowManagementMessage_Define = WindowManagementMessageType + ".Define";
+export const WindowManagementMessage_Show = WindowManagementMessageType + ".Show";
+
