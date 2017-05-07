@@ -40,6 +40,8 @@ const PlaylistTableTd = Reactable.Td as PlaylistTableTd;
 type PlaylistTableTfoot = new () => Reactable.Tfoot;
 const PlaylistTableTfoot = Reactable.Tfoot as PlaylistTableTfoot;
 
+const playlistNameSetting = "Settings.PlaylistComponent.Playlistname";
+
 export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettingsProperties, PlaylistComponentState> {
     
     private tokens: any[];
@@ -79,7 +81,7 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
     protected loadSettings(response: PouchDB.Core.AllDocsResponse<Track | Playlist | Setting<any>>) {
         if (response.rows.length==0) {
             var playlistnameSetting: Setting<string> = {
-                _id: "PlaylistComponent.Settings.Playlistname",
+                _id: playlistNameSetting,
                 DocType: DocumentType.Setting,
                 Value: "All",
                 IsVisible: false
@@ -98,7 +100,7 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
         else 
             this.settings = response.rows.map(row => row.doc).map(doc => doc as Setting<any>);
 
-        var playlistName = this.settings.find((value, index, obj) => value._id == "PlaylistComponent.Settings.Playlistname") as Setting<string>;
+        var playlistName = this.settings.find((value, index, obj) => value._id == playlistNameSetting) as Setting<string>;
         var currentSongIndex = this.settings.find((value, index, obj) => value._id == CurrentSongIndexSetting) as Setting<number>;
 
         this.props.db.put(this.state.currentPlaylist).then((res) => {

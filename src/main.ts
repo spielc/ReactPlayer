@@ -1,5 +1,5 @@
 import {app, BrowserWindow, ipcMain} from "electron";
-import {WindowManagementMessage_Define, WindowManagementMessage_Show} from "./base/typedefs";
+import { WindowManagementMessage_Define, WindowManagementMessage_Show, WindowManagementMessage_RegisterHandler, WindowManagementMessage_LifeCycleEvent, WindowDefinitionType, WindowRegisterHandlerType, WindowManagementMessage_UnregisterHandler } from "./base/typedefs";
 
 const MainWindow = "MainWindow";
 
@@ -7,6 +7,8 @@ const MainWindow = "MainWindow";
 // be closed automatically when the JavaScript object is garbage collected.
 //let win: Electron.BrowserWindow;
 let windows = new Map<string, Electron.BrowserWindow>();
+// map IPC-Object=>WindowID=>EventID
+let lifeCycleEventHandlers = new Map<Electron.WebContents, Map<string, string>>();
 
 function createWindow () {
     // Create the browser window.
@@ -24,7 +26,7 @@ function createWindow () {
         // Dereference the window object, usually you would store windows
         // in an array if your app supports multi windows, this is the time
         // when you should delete the corresponding element.
-        win = null
+        win = null;
     });
     windows.set(MainWindow, win);
 }
@@ -33,7 +35,51 @@ function createWindow () {
 ipcMain.on("synchronous-message", (event, data) => {
     console.log(data);
     event.returnValue = data;
-})
+});
+
+ipcMain.on(WindowManagementMessage_Define, (event, data) => {
+    let winDef = data as WindowDefinitionType;
+    let retValue = false;
+    if (winDef) {
+        console.log(winDef.URL);
+        winDef.Options.parent = windows.get(MainWindow);
+        let window = new BrowserWindow(winDef.Options);
+        window.loadURL(winDef.URL);
+        // window.on("close", (event) => {
+        //     event.preventDefault();
+        // })
+        window.on("closed", () => {
+            window.removeAllListeners();
+            window = null;
+            console.log(`Window '${winDef.WindowId}' closed!`);
+        });
+        windows.set(winDef.WindowId, window);
+        retValue = true;
+    }
+    event.returnValue = retValue;
+});
+
+ipcMain.on(WindowManagementMessage_Show, (event, data) => {
+    let windowName = data as string;
+    let retValue = false;
+    if (windowName && windows.has(windowName)) {
+        windows.get(windowName).show();
+        retValue = true;
+    }
+    event.returnValue = retValue;
+});
+
+ipcMain.on(WindowManagementMessage_RegisterHandler, (event, data) => {
+    let blub = data as WindowRegisterHandlerType;
+    let windowName = blub.WindowId;
+    if (windowName && windows.has(windowName)) {
+        windows.get(windowName).on(blub.EventId, () => {
+            //console.log(`sending "${event.sender}.send(WindowManagementMessage_LifeCycleEvent, [${windowName}, ${blub.EventId}])"`);
+            event.sender.send(WindowManagementMessage_LifeCycleEvent, [windowName, blub.EventId]);
+        });
+    }
+    event.returnValue = true;
+});
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

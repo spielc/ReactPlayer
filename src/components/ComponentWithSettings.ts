@@ -20,11 +20,14 @@ export abstract class ComponentWithSettings<P extends ComponentWithSettingsPrope
 
         var settingsSelectOptions: PouchDB.Core.AllDocsWithinRangeOptions = {
             include_docs: true,
-            startkey: `${this.constructor.name}.Settings.`,
-            endkey: `${this.constructor.name}.Settings.\uffff`
+            startkey: `Settings.${this.constructor.name}.`,
+            endkey: `Settings.${this.constructor.name}.\uffff`
         } 
 
         this.props.db.allDocs(settingsSelectOptions).then(response => this.loadSettings(response));
+
+        //TODO implement a common PouchDB-changes-handler for Settings<any>-objects
+
     }
 
     protected abstract loadSettings(response: PouchDB.Core.AllDocsResponse<Track | Playlist | Setting<any>>);

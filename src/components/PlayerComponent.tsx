@@ -5,13 +5,13 @@ import * as PubSub from "pubsub-js";
 import {readFile} from "fs";
 import {request, RequestOptions} from "http";
 import md5 = require("md5");
-import {ipcRenderer} from "electron";
+import {ipcRenderer, BrowserWindow} from "electron";
 
 import {ComponentWithSettings, ComponentWithSettingsProperties} from "./ComponentWithSettings";
 import {PlayerState, DocumentType} from "../base/enums";
 import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
-import {PlayerMessageTypes_Play, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_Changed, PlaylistMessage_TrackChanged, WindowManagementMessage_Define, WindowManagementMessage_Show} from "../base/typedefs";
+import {PlayerMessageTypes_Play, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_Changed, PlaylistMessage_TrackChanged, WindowManagementMessage_Define, WindowManagementMessage_Show, WindowDefinitionType, SettingsWindowName, WindowManagementMessage_RegisterHandler, WindowManagementMessage_LifeCycleEvent} from "../base/typedefs";
 import {Setting} from "../base/setting";
 import {mod} from "../base/util";
 
@@ -29,8 +29,8 @@ interface WaveSurferEventParams {
         originalArgs: any[];
 }
 
-const EnableScrobblingSetting = "PlayerComponent.Settings.EnableScrobbling";
-const LastFMSessionKeySetting = "PlayerComponent.Settings.EnableLastSessionKey";
+const EnableScrobblingSetting = "Settings.PlayerComponent.EnableScrobbling";
+const LastFMSessionKeySetting = "Settings.PlayerComponent.EnableLastSessionKey";
 
 export class PlayerComponent extends ComponentWithSettings<ComponentWithSettingsProperties, PlayerComponentState> {
     
@@ -58,6 +58,24 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
     public componentDidMount() : void {
         this.tokens.push(PubSub.subscribe(PlaylistMessageType, (event: PlaylistMessageTypes, trackIdx: number) => { this.playlistEvent(event, trackIdx); }));
         // TODO send ipc-Message to Main-process which registers the Settings-dialog
+        // let windowDef: WindowDefinitionType = [
+        //     SettingsWindowName,
+        //     `file://${__dirname}/../settings.html`,
+        //     {
+        //         modal: true,
+        //         show: false,
+        //         title: "Settings"
+        //     }
+        // ];
+        ipcRenderer.sendSync(WindowManagementMessage_Define, {//windowDef);
+            WindowId: SettingsWindowName,
+            URL: `file://${__dirname}/../settings.html`,
+            Options: {
+                modal: true,
+                show: false,
+                title: "Settings"
+            }
+        });
     }
 
     public render(): JSX.Element {
@@ -156,7 +174,33 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
 
     private openSettingsDialog(): void {
         // TODO fix this that the settings dialog gets opened
-        console.log(ipcRenderer.sendSync("synchronous-message", "ping"));
+        // window.on("closed", () => {
+        //     window.removeAllListeners();
+        //     window = null;
+        //     console.log(`Window '${winDef.WindowId}' closed!`);
+        // });
+        // windows.set(winDef.WindowId, window);
+        //console.log(ipcRenderer.sendSync("synchronous-message", "ping"));
+        ipcRenderer.sendSync(WindowManagementMessage_Show, SettingsWindowName);
+        // TODO send ipc-Message to Main-process which registers the Settings-dialog
+        // let windowDef: WindowDefinitionType = [
+        //     SettingsWindowName,
+        //     `file://${__dirname}/../settings.html`,
+        //     {
+        //         modal: true,
+        //         show: false,
+        //         title: "Settings"
+        //     }
+        // ];
+        ipcRenderer.sendSync(WindowManagementMessage_Define, {//windowDef);
+            WindowId: SettingsWindowName,
+            URL: `file://${__dirname}/../settings.html`,
+            Options: {
+                modal: true,
+                show: false,
+                title: "Settings"
+            }
+        });
     }
 
     private playlistEvent(event: PlaylistMessageTypes, trackIdx: number): void {
@@ -252,12 +296,41 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
                 BUBBLING_PHASE: 0,
                 CAPTURING_PHASE: 0,
                 scoped: false,
-                deepPath: () => new EventTarget[0]
+                deepPath: () => new EventTarget[0],
+                altKey: false,
+                button: 0,
+                buttons: 0,
+                clientX: 0,
+                clientY: 0,
+                ctrlKey: false,
+                fromElement: null,
+                layerX: 0,
+                layerY: 0,
+                metaKey: false,
+                movementX: 0,
+                movementY: 0,
+                offsetX: 0,
+                offsetY: 0,
+                pageX: 0,
+                pageY: 0,
+                relatedTarget: this.forwardBtn,
+                screenX: 0,
+                screenY: 0,
+                shiftKey: false,
+                toElement: this.forwardBtn,
+                which: 0,
+                x: 0,
+                y: 0,
+                getModifierState: (blub: string) => true,
+                initMouseEvent: (typeArg: string, canBubbleArg: boolean, cancelableArg: boolean, viewArg: Window, detailArg: number, screenXArg: number, screenYArg: number, clientXArg: number, clientYArg: number, ctrlKeyArg: boolean, altKeyArg: boolean, shiftKeyArg: boolean, metaKeyArg: boolean, buttonArg: number, relatedTargetArg: EventTarget | null) => {},
+                detail: 0,
+                view: null,
+                initUIEvent: (typeArg: string, canBubbleArg: boolean, cancelableArg: boolean, viewArg: Window, detailArg: number) => {}
             },
             preventDefault: () => {},
             stopPropagation: () => {},
             target: this.forwardBtn,
-            timeStamp: new Date(),
+            timeStamp: 0,
             type: ""
         };
     }
@@ -291,9 +364,9 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
             }
         }
         else if (this.trackDurationHalf > 0 && ((pos > this.trackDurationHalf) || (pos > 240)))  {
-            // var enableScrobblingSetting = this.settings.find((setting, index, obj) => { return setting._id == EnableScrobblingSetting }) as Setting<boolean>;
-            // var lastFMSessionKeySetting = this.settings.find((setting, index, obj) => { return setting._id == LastFMSessionKeySetting }) as Setting<string>;
-            // if (enableScrobblingSetting && enableScrobblingSetting.Value && lastFMSessionKeySetting && (lastFMSessionKeySetting.Value.length > 0)) {
+            var enableScrobblingSetting = this.settings.find((setting, index, obj) => { return setting._id == EnableScrobblingSetting }) as Setting<boolean>;
+            var lastFMSessionKeySetting = this.settings.find((setting, index, obj) => { return setting._id == LastFMSessionKeySetting }) as Setting<string>;
+            if (enableScrobblingSetting && enableScrobblingSetting.Value && lastFMSessionKeySetting && (lastFMSessionKeySetting.Value.length > 0)) {
                 this.props.db.get("All").then((response) => {
                     let list = response as Playlist;
                     if (list != null) {
@@ -308,7 +381,8 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
                             map.set("api_key", "bef50d03aa4fa431554f3bac85147580");
                             map.set("artist", track.artist);
                             map.set("method", "track.scrobble");
-                            map.set("sk", "2b19d6abdccc11a6825bde6ba305e16c");
+                            //map.set("sk", "2b19d6abdccc11a6825bde6ba305e16c");
+                            map.set("sk", lastFMSessionKeySetting.Value);
                             map.set("timestamp", this.trackStartPlaybackTimestamp.toString());
                             //map.set("timestamp", "1461172285");
                             map.set("track", track.title);
@@ -345,7 +419,7 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
                         });
                     }
                 });
-            // }
+            }
             this.trackDurationHalf = -1;
         }
 

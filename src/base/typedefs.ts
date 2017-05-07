@@ -2,6 +2,18 @@ import PouchDB = require("pouchdb-browser");
 import {Track} from "./track";
 import {Playlist} from "./playlist";
 import {Setting} from "./setting";
+import {app, BrowserWindow, ipcMain} from "electron";
+
+export interface WindowDefinitionType {
+    WindowId: string,
+    URL: string,
+    Options: Electron.BrowserWindowOptions
+} //[string, string, Electron.BrowserWindowOptions];
+
+export interface WindowRegisterHandlerType {
+    WindowId: string,
+    EventId: string
+}
 
 export type ReactPlayerDB = PouchDB.Database<Track | Playlist | Setting<any>>;
 
@@ -22,9 +34,14 @@ export const PlaylistMessage_Changed = PlaylistMessageType + ".Changed";
 export const PlaylistMessage_TrackChanged = PlaylistMessageType + ".TrackChanged";
 export const PlaylistMessage_TrackRemoved = PlaylistMessageType + ".TrackRemoved";
 
-export const CurrentSongIndexSetting = "PlaylistComponent.Settings.CurrentSongIndex";
+export const CurrentSongIndexSetting = "Settings.PlaylistComponent.CurrentSongIndex";
 
 export const WindowManagementMessageType = "WindowManagementMessage";
 export const WindowManagementMessage_Define = WindowManagementMessageType + ".Define";
 export const WindowManagementMessage_Show = WindowManagementMessageType + ".Show";
+export const WindowManagementMessage_RegisterHandler = WindowManagementMessageType + ".RegisterHandler";
+export const WindowManagementMessage_UnregisterHandler = WindowManagementMessageType + ".UnregisterHandler";
+export const WindowManagementMessage_LifeCycleEvent = WindowManagementMessageType + ".LifeCycleEvent";
+
+export const SettingsWindowName = "SettingsWindow";
 
