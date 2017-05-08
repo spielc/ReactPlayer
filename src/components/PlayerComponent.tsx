@@ -13,12 +13,13 @@ import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
 import {PlayerMessageTypes_Play, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_Changed, PlaylistMessage_TrackChanged, WindowManagementMessage_Define, WindowManagementMessage_Show, WindowDefinitionType, SettingsWindowName, WindowManagementMessage_RegisterHandler, WindowManagementMessage_LifeCycleEvent} from "../base/typedefs";
 import {Setting} from "../base/setting";
+import {LastFMHelper} from "../util/LastFMHelper";
 import {mod} from "../base/util";
 
 interface PlayerComponentState {
     state: PlayerState[];
     containerState: "enabled" | "disabled";
-    currentFile: string[]; //TODO: this has to be changed to a string[]
+    currentFile: string[];
     currentPos: number[];
     currentIndex: number;
     currentVolume: number;
@@ -42,6 +43,7 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
     private trackDurationHalf: number;
     private trackStartPlaybackTimestamp: number;
     private win: any;
+    private lastFMHelper: LastFMHelper;
 
     constructor(props: ComponentWithSettingsProperties, context?: any) {
         super(props, context);
@@ -53,21 +55,12 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
         this.tokens = [];
         this.trackDurationHalf = -1;
         this.trackStartPlaybackTimestamp = -1;
+        this.lastFMHelper = null;
     }    
 
     public componentDidMount() : void {
         this.tokens.push(PubSub.subscribe(PlaylistMessageType, (event: PlaylistMessageTypes, trackIdx: number) => { this.playlistEvent(event, trackIdx); }));
-        // TODO send ipc-Message to Main-process which registers the Settings-dialog
-        // let windowDef: WindowDefinitionType = [
-        //     SettingsWindowName,
-        //     `file://${__dirname}/../settings.html`,
-        //     {
-        //         modal: true,
-        //         show: false,
-        //         title: "Settings"
-        //     }
-        // ];
-        ipcRenderer.sendSync(WindowManagementMessage_Define, {//windowDef);
+        ipcRenderer.sendSync(WindowManagementMessage_Define, {
             WindowId: SettingsWindowName,
             URL: `file://${__dirname}/../settings.html`,
             Options: {
@@ -109,7 +102,7 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
 
     protected loadSettings(response: PouchDB.Core.AllDocsResponse<Track | Playlist | Setting<any>>) {
         if (response.rows.length==0) {
-            var enableScrobblingSetting: Setting<boolean> = {
+            let enableScrobblingSetting: Setting<boolean> = {
                 _id: EnableScrobblingSetting,
                 DocType: DocumentType.Setting,
                 Value: false,
@@ -117,7 +110,7 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
             };
             this.props.db.put(enableScrobblingSetting);
             this.settings.push(enableScrobblingSetting);
-            var lastFMSessionKeySetting: Setting<string> = {
+            let lastFMSessionKeySetting: Setting<string> = {
                 _id: LastFMSessionKeySetting,
                 DocType: DocumentType.Setting,
                 Value: "",
@@ -128,6 +121,9 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
         }
         else 
             this.settings = response.rows.map(row => row.doc).map(doc => doc as Setting<any>);
+        let lastFMSessionKeySetting = this.settings.find(setting => setting._id == LastFMSessionKeySetting) as Setting<string>;
+        if (lastFMSessionKeySetting.Value !== "")
+            this.lastFMHelper = new LastFMHelper("bef50d03aa4fa431554f3bac85147580", lastFMSessionKeySetting.Value);
     }
 
     private loadFiles(callback?: () => any): void {
@@ -340,17 +336,6 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
         return (this.state.currentFile[mod((this.state.currentIndex + changeValue), 3)] != null && this.state.currentFile[mod((this.state.currentIndex + changeValue), 3)]) ? "enabled" : "disabled";
     }
 
-    // testdata for generating the api-signature                                                                                                                                                 
-    //api_keybef50d03aa4fa431554f3bac85147580artistCalibanmethodtrack.scrobblesk2b19d6abdccc11a6825bde6ba305e16ctimestamp1461172285trackKing66717d5c66601f8f7789cd9f93444252 => 4d0e837d63a2618c408736b3dc9e0ced
-    private sign(data: Map<string, string>): string {
-        let retValue = "";
-        for(let entry of data) {
-            retValue += entry[0] + entry[1];
-        }
-        retValue += "66717d5c66601f8f7789cd9f93444252";
-        return md5(retValue);
-    }
-
     private posChange(event: WaveSurferEventParams): void {
         var pos = Math.floor(event.originalArgs[0]);
         if (pos == 0) {
@@ -365,57 +350,21 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
         }
         else if (this.trackDurationHalf > 0 && ((pos > this.trackDurationHalf) || (pos > 240)))  {
             var enableScrobblingSetting = this.settings.find((setting, index, obj) => { return setting._id == EnableScrobblingSetting }) as Setting<boolean>;
-            var lastFMSessionKeySetting = this.settings.find((setting, index, obj) => { return setting._id == LastFMSessionKeySetting }) as Setting<string>;
-            if (enableScrobblingSetting && enableScrobblingSetting.Value && lastFMSessionKeySetting && (lastFMSessionKeySetting.Value.length > 0)) {
+            if (enableScrobblingSetting && enableScrobblingSetting.Value) { 
                 this.props.db.get("All").then((response) => {
                     let list = response as Playlist;
                     if (list != null) {
                         this.props.db.get(list.Tracks[this.state.currentIndex]._id).then(value => {
                             let track = value as Track;
-                            /*let track = {
-                                artist: "Caliban",
-                                title: "King"
-                            };*/
                             let map = new Map<string,string>();
                             map.set("album", track.album);
-                            map.set("api_key", "bef50d03aa4fa431554f3bac85147580");
                             map.set("artist", track.artist);
                             map.set("method", "track.scrobble");
-                            //map.set("sk", "2b19d6abdccc11a6825bde6ba305e16c");
-                            map.set("sk", lastFMSessionKeySetting.Value);
                             map.set("timestamp", this.trackStartPlaybackTimestamp.toString());
-                            //map.set("timestamp", "1461172285");
                             map.set("track", track.title);
-                            let signature = this.sign(map);
-                            map.set("api_sig", signature);
-                            map.set("format", "json");
-                            let requestParams = "";
-                            for(let entry of map) {
-                                requestParams += `${entry[0]}=${entry[1]}&`;
+                            if (this.lastFMHelper) {
+                                this.lastFMHelper.startRequest(map, true);
                             }
-                            requestParams=requestParams.substr(0, requestParams.lastIndexOf("&"));
-                            let reqOptions: RequestOptions = {
-                                protocol: "http:",
-                                method: "POST",
-                                host: "ws.audioscrobbler.com",
-                                port: 80,
-                                headers: {
-                                    "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
-                                },
-                                path: "/2.0/"
-                            }
-                            let req = request(reqOptions, response => {
-                                response.addListener("data", chunk => {
-                                    let buf = chunk as Buffer;
-                                    let res = String.fromCharCode.apply(null, buf);
-                                    let i = 0;
-                                });
-                            });
-                            req.addListener("error", err => {
-                                let i = 0;
-                            });
-                            req.write(requestParams);
-                            req.end();
                         });
                     }
                 });

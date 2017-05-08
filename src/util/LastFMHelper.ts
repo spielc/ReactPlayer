@@ -7,7 +7,7 @@ export class LastFMHelper {
 
     }
 
-    public startRequest(requestParams: Map<string, string>, sign: boolean): void {
+    public startRequest(requestParams: Map<string, string>, sign: boolean): Promise<any> {
         requestParams.set("api_key", this.apiKey);
         requestParams.set("sk", this.sessionKey);
         requestParams = this.toSortedMap(requestParams);
@@ -34,7 +34,7 @@ export class LastFMHelper {
         }
         let promise = new Promise((resolve, reject) => {
             let req = request(reqOptions, response => {
-            response.addListener("data", chunk => {
+                response.addListener("data", chunk => {
                     let buf = chunk as Buffer;
                     let res = String.fromCharCode.apply(null, buf);
                     let i = 0;
@@ -44,23 +44,14 @@ export class LastFMHelper {
             req.addListener("error", err => {
                 reject(err);
             });
-            req.write(requestParams);
+            req.write(reqParams);
             req.end();
         });
-        let req = request(reqOptions, response => {
-            response.addListener("data", chunk => {
-                let buf = chunk as Buffer;
-                let res = String.fromCharCode.apply(null, buf);
-                let i = 0;
-            });
-        });
-        req.addListener("error", err => {
-            let i = 0;
-        });
-        req.write(requestParams);
-        req.end();
+        return promise;
     }
 
+    // testdata for generating the api-signature                                                                                                                                                 
+    //api_keybef50d03aa4fa431554f3bac85147580artistCalibanmethodtrack.scrobblesk2b19d6abdccc11a6825bde6ba305e16ctimestamp1461172285trackKing66717d5c66601f8f7789cd9f93444252 => 4d0e837d63a2618c408736b3dc9e0ced
     private sign(map: Map<string, string>): string {
         let retValue = "";
         for(let entry of map) {
