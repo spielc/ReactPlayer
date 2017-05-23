@@ -19,7 +19,6 @@
     "md5": "^2.2.1",
     "pouchdb": "^6.1.2",
     "pouchdb-browser": "^6.1.2",
-    "pubsub-js": "^1.5.6",
     "react": "^15.5.4",
     "react-dom": "^15.5.4",
     "react-wavesurfer": "^0.8.3",
@@ -30,7 +29,6 @@
     "@types/electron": "^1.4.37",
     "@types/md5": "^2.1.32",
     "@types/pouchdb": "^6.1.0",
-    "@types/pubsub-js": "^1.5.17",
     "@types/react": "^15.0.22",
     "@types/react-dom": "^15.5.0",
     "rimraf": "^2.6.1"

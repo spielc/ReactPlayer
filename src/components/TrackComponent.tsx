@@ -1,8 +1,8 @@
 import * as React from "react";
-import * as PubSub from "pubsub-js";
 
 import {Track} from "../base/track";
-import {ReactPlayerDB, PlaylistMessage_TrackChanged, PlaylistMessage_TrackRemoved} from "../base/typedefs";
+import {Setting} from "../base/setting";
+import {ReactPlayerDB, CurrentSongIndexSetting} from "../base/typedefs";
 
 export interface TrackComponentProperties {
     db : ReactPlayerDB,
@@ -21,8 +21,20 @@ export class TrackComponent extends React.Component<TrackComponentProperties, {}
         if (this.props.value != "actions")
             content = this.props.value;
         else
-            content = <div><i className="fa fa-play fa-lg" onClick={evt => PubSub.publish(PlaylistMessage_TrackChanged, this.props.trackIdx)}/> <i className="fa fa-bookmark-o fa-lg"/> <i className="fa fa-trash fa-lg" onClick={evt => PubSub.publish(PlaylistMessage_TrackRemoved, this.props.trackIdx)}/></div>;
+            content = <div><i className="fa fa-play fa-lg" onClick={evt => this.trackChanged()}/> <i className="fa fa-bookmark-o fa-lg"/> <i className="fa fa-trash fa-lg" onClick={evt => this.trackDeleted()}/></div>;
         return <div>{content}</div>;
+    }
+
+    private trackChanged():void {
+        this.props.db.get(CurrentSongIndexSetting).then(response => {
+            let setting = response as Setting<number>;
+            setting.Value = this.props.trackIdx;
+            this.props.db.put(setting);
+        })
+    }
+
+    private trackDeleted(): void {
+        // TODO get the current playlist and remove the track with idx from the list of tracks
     }
 
 }

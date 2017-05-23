@@ -4,13 +4,12 @@ import * as Reactable from "reactable";
 import * as PouchDB from "pouchdb-browser";
 import * as ID3 from "id3-parser";
 import * as sha256 from "js-sha256";
-import * as PubSub from "pubsub-js";
 
 import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
 import {Setting} from "../base/setting";
-import {PlayerMessageType, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlayerMessageTypes_Play, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_TrackChanged, PlaylistMessage_TrackRemoved, PlaylistMessage_Changed} from "../base/typedefs";
-import {DocumentType} from "../base/enums";
+import {PlayerMessageType, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlaybackStateSetting, PlayerMessageTypes_Play, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_TrackChanged, PlaylistMessage_TrackRemoved, PlaylistMessage_Changed} from "../base/typedefs";
+import {DocumentType, PlayerState} from "../base/enums";
 import {shuffle} from "../base/util";
 import {TrackComponent} from "./TrackComponent";
 import {ComponentWithSettings, ComponentWithSettingsProperties} from "./ComponentWithSettings";
@@ -143,17 +142,25 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
                             break;
                         }
                         case DocumentType.Setting: {
-                            if (value._id == CurrentSongIndexSetting) {
-                                var currentSongIndexSetting = value as Setting<number>;
-                                currentSongIndex.Value = currentSongIndexSetting.Value;
-                                this.setState({
-                                    currentPlaylist: this.state.currentPlaylist,
-                                    displayedColumns: this.state.displayedColumns,
-                                    currentSongIndex: currentSongIndex.Value,
-                                    isPlaying: this.state.isPlaying
-                                });
-                                break;
+                            switch(value._id) {
+                                case CurrentSongIndexSetting:
+                                    var currentSongIndexSetting = value as Setting<number>;
+                                    currentSongIndex.Value = currentSongIndexSetting.Value;
+                                    this.setState({
+                                        currentPlaylist: this.state.currentPlaylist,
+                                        displayedColumns: this.state.displayedColumns,
+                                        currentSongIndex: currentSongIndex.Value,
+                                        isPlaying: this.state.isPlaying
+                                    });
+                                    break;
+                                case PlaybackStateSetting:
+                                    let playbackStateSetting = value as Setting<PlayerState>;
+                                    this.setState({
+                                        isPlaying: playbackStateSetting.Value == PlayerState.Playing
+                                    });
+                                    break;
                             }
+                            break;
                         }
                     }
                 });
@@ -329,7 +336,7 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
                             var list = response as Playlist;
                             list.Tracks = tracks;
                             this.props.db.put(list).then(res => {
-                                PubSub.publish(PlaylistMessage_Changed, list._id);
+                                //PubSub.publish(PlaylistMessage_Changed, list._id);
                             });
                         });
                     }
@@ -391,8 +398,8 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
     }
 
     public componentDidMount() : void {
-        this.tokens.push(PubSub.subscribe(PlayerMessageType, (event: PlayerMessageTypes, data: any) => { this.playerEvent(event, data); }));
-        this.tokens.push(PubSub.subscribe(PlaylistMessageType, (event: PlaylistMessageTypes, trackIdx: number) => { this.playlistEvent(event, trackIdx); }));
+        // this.tokens.push(PubSub.subscribe(PlayerMessageType, (event: PlayerMessageTypes, data: any) => { this.playerEvent(event, data); }));
+        // this.tokens.push(PubSub.subscribe(PlaylistMessageType, (event: PlaylistMessageTypes, trackIdx: number) => { this.playlistEvent(event, trackIdx); }));
         window.document.addEventListener("dragover", (event) => {
             event.stopPropagation();
             event.preventDefault();
@@ -401,7 +408,7 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
     }
 
     public componentWillUnmount() : void {
-        this.tokens.forEach(token => PubSub.unsubscribe(token));
+        // this.tokens.forEach(token => PubSub.unsubscribe(token));
         window.document.removeEventListener("dragover");
     }
 

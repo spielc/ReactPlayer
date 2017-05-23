@@ -35,6 +35,7 @@ export const PlaylistMessage_TrackChanged = PlaylistMessageType + ".TrackChanged
 export const PlaylistMessage_TrackRemoved = PlaylistMessageType + ".TrackRemoved";
 
 export const CurrentSongIndexSetting = "Settings.PlaylistComponent.CurrentSongIndex";
+export const PlaybackStateSetting = "Settings.PlayerComponent.PlaybackState";
 
 export const WindowManagementMessageType = "WindowManagementMessage";
 export const WindowManagementMessage_Define = WindowManagementMessageType + ".Define";

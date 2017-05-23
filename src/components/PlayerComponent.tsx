@@ -1,7 +1,6 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import WaveSurfer from "react-wavesurfer";
-import * as PubSub from "pubsub-js";
 import {readFile} from "fs";
 import {request, RequestOptions} from "http";
 import md5 = require("md5");
@@ -11,7 +10,7 @@ import {ComponentWithSettings, ComponentWithSettingsProperties} from "./Componen
 import {PlayerState, DocumentType} from "../base/enums";
 import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
-import {PlayerMessageTypes_Play, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_Changed, PlaylistMessage_TrackChanged, WindowManagementMessage_Define, WindowManagementMessage_Show, WindowDefinitionType, SettingsWindowName, WindowManagementMessage_RegisterHandler, WindowManagementMessage_LifeCycleEvent} from "../base/typedefs";
+import {PlayerMessageTypes_Play, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlaybackStateSetting, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_Changed, PlaylistMessage_TrackChanged, WindowManagementMessage_Define, WindowManagementMessage_Show, WindowDefinitionType, SettingsWindowName, WindowManagementMessage_RegisterHandler, WindowManagementMessage_LifeCycleEvent} from "../base/typedefs";
 import {Setting} from "../base/setting";
 import {LastFMHelper} from "../util/LastFMHelper";
 import {mod} from "../base/util";
@@ -44,6 +43,7 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
     private trackStartPlaybackTimestamp: number;
     private win: any;
     private lastFMHelper: LastFMHelper;
+    private isCurrentSongIndexSettingChanger: boolean;
 
     constructor(props: ComponentWithSettingsProperties, context?: any) {
         super(props, context);
@@ -56,10 +56,37 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
         this.trackDurationHalf = -1;
         this.trackStartPlaybackTimestamp = -1;
         this.lastFMHelper = null;
+        this.isCurrentSongIndexSettingChanger = false;
+
+        this.props.db.changes({
+            include_docs: true,
+            since: "now",
+            live: true
+        }).on("change", args => {
+            if (args.id) {
+                var changeArgs = args; //as PouchDB.Core.ChangeResponse;
+                this.props.db.get(args.id).then(value => {
+                    switch(value.DocType) {
+                        case DocumentType.Setting: {
+                            if (value._id == CurrentSongIndexSetting && !this.isCurrentSongIndexSettingChanger) {
+                                var currentSongIndexSetting = value as Setting<number>;
+                                var isPlaying = this.state.state.some(state => state == PlayerState.Playing);
+                                this.state.state.fill(PlayerState.Loaded)
+                                this.setState({
+                                    state: this.state.state, 
+                                    containerState: "disabled"
+                                }, () => this.loadFiles());
+                            }
+                            this.isCurrentSongIndexSettingChanger = false;
+                        }
+                    }
+                });
+            }
+        });
     }    
 
     public componentDidMount() : void {
-        this.tokens.push(PubSub.subscribe(PlaylistMessageType, (event: PlaylistMessageTypes, trackIdx: number) => { this.playlistEvent(event, trackIdx); }));
+        // this.tokens.push(PubSub.subscribe(PlaylistMessageType, (event: PlaylistMessageTypes, trackIdx: number) => { this.playlistEvent(event, trackIdx); }));
         ipcRenderer.sendSync(WindowManagementMessage_Define, {
             WindowId: SettingsWindowName,
             URL: `file://${__dirname}/../settings.html`,
@@ -86,8 +113,8 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
                 <div id="container" className={this.state.containerState}>
                     <div className="player-control">
                         <div id="previous-button" title="Previous" onClick={evt=>this.trackChange(evt)} className={(this.trackChangeBtnClassName(false))}><i className="fa fa-fast-backward"/></div>
-                        <div id="play-button" title="Play" onClick={evt=>{this.play()}}><i className="fa fa-play"/></div>
-                        <div id="pause-button" title="Pause" onClick={evt=>{this.setState({state: [PlayerState.Loaded, PlayerState.Paused, PlayerState.Loaded], containerState: "enabled", currentFile: this.state.currentFile, currentPos: this.state.currentPos, currentIndex: this.state.currentIndex, currentVolume: this.state.currentVolume });}}><i className="fa fa-pause"/></div>
+                        <div id="play-button" title="Play" onClick={evt => this.play()}><i className="fa fa-play"/></div>
+                        <div id="pause-button" title="Pause" onClick={evt => this.pause()}><i className="fa fa-pause"/></div>
                         <div id="stop-button" title="Stop" onClick={evt=>this.stopButtonClicked(evt)}><i className="fa fa-stop"/></div>
                         <div id="next-button" title="Next" onClick={evt=>this.trackChange(evt)} className={(this.trackChangeBtnClassName(true))} ref={(r) => this.forwardBtn=r}><i className="fa fa-fast-forward"/></div>
                         <div id="mute-button" title="Toggle mute" onClick={evt=>{}}><i className="fa fa-volume-off"></i></div>
@@ -118,6 +145,14 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
             };
             this.props.db.put(lastFMSessionKeySetting);
             this.settings.push(lastFMSessionKeySetting);
+            let playbackStateSetting: Setting<PlayerState> = {
+                _id: PlaybackStateSetting,
+                DocType: DocumentType.Setting,
+                Value: PlayerState.Loaded,
+                IsVisible: false
+            }
+            this.props.db.put(playbackStateSetting);
+            this.settings.push(playbackStateSetting);
         }
         else 
             this.settings = response.rows.map(row => row.doc).map(doc => doc as Setting<any>);
@@ -243,7 +278,16 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
         this.setState({
             state: this.state.state
         });
-        PubSub.publish(PlayerMessageTypes_Play, {});
+
+        this.changePlayerState(PlayerState.Playing);
+    }
+
+    private pause(): void {
+        this.setState({
+            state: [PlayerState.Loaded, PlayerState.Paused, PlayerState.Loaded], 
+            containerState: "enabled" 
+        });
+        this.changePlayerState(PlayerState.Paused);
     }
 
     private createDummyMouseEvent(): React.MouseEvent<HTMLDivElement> {
@@ -331,6 +375,14 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
         };
     }
 
+    private changePlayerState(newState: PlayerState): void {
+        this.props.db.get(PlaybackStateSetting).then(response => {
+            let setting = response as Setting<PlayerState>;
+            setting.Value = newState;
+            this.props.db.put(setting);
+        });
+    }
+
     private trackChangeBtnClassName(isForwardBtn: boolean): string {
         var changeValue = (isForwardBtn) ? 1 : -1;
         return (this.state.currentFile[mod((this.state.currentIndex + changeValue), 3)] != null && this.state.currentFile[mod((this.state.currentIndex + changeValue), 3)]) ? "enabled" : "disabled";
@@ -381,6 +433,7 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
         this.setState({
             state: this.state.state
         });
+        this.changePlayerState(PlayerState.Stopped);
     }
 
     private volumeChange(isIncrease: boolean): void {
@@ -441,8 +494,14 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
                 state: this.state.state, 
                 currentIndex: newIndex
             });
-            var msgType = (title == "Next") ? PlayerMessageTypes_Forward : PlayerMessageTypes_Backward;
-            PubSub.publish(msgType, {});
+            // var msgType = (title == "Next") ? PlayerMessageTypes_Forward : PlayerMessageTypes_Backward;
+            // PubSub.publish(msgType, {});
+            this.props.db.get(CurrentSongIndexSetting).then(result => {
+                var setting = result as Setting<number>;
+                setting.Value += changeValue;
+                this.isCurrentSongIndexSettingChanger = true;
+                this.props.db.put(setting);
+            })
         }
     }
 
