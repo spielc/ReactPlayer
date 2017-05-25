@@ -34,9 +34,6 @@ export const PlaylistMessage_Changed = PlaylistMessageType + ".Changed";
 export const PlaylistMessage_TrackChanged = PlaylistMessageType + ".TrackChanged";
 export const PlaylistMessage_TrackRemoved = PlaylistMessageType + ".TrackRemoved";
 
-export const CurrentSongIndexSetting = "Settings.PlaylistComponent.CurrentSongIndex";
-export const PlaybackStateSetting = "Settings.PlayerComponent.PlaybackState";
-
 export const WindowManagementMessageType = "WindowManagementMessage";
 export const WindowManagementMessage_Define = WindowManagementMessageType + ".Define";
 export const WindowManagementMessage_Show = WindowManagementMessageType + ".Show";
@@ -46,3 +43,11 @@ export const WindowManagementMessage_LifeCycleEvent = WindowManagementMessageTyp
 
 export const SettingsWindowName = "SettingsWindow";
 
+export const SettingIdPrefix = "Setting.";
+export const TrackIdPrefix = "Track.";
+export const PlaylistIdPrefix = "Playlist.";
+
+export const CurrentSongIndexSetting = SettingIdPrefix + "PlaylistComponent.CurrentSongIndex";
+export const CurrentPlaylistSetting = SettingIdPrefix + "PlaylistComponent.Playlistname";
+export const LibraryModeEnabledSetting = SettingIdPrefix + "PlaylistComponent.LibraryModeEnabled";
+export const PlaybackStateSetting = SettingIdPrefix + "PlayerComponent.PlaybackState";

@@ -4,7 +4,7 @@ import * as Reactable from "reactable";
 
 import {ipcRenderer} from "electron";
 
-import {ReactPlayerDB, SettingsWindowName, WindowManagementMessage_RegisterHandler, WindowManagementMessage_LifeCycleEvent} from "../base/typedefs";
+import {ReactPlayerDB, SettingsWindowName, WindowManagementMessage_RegisterHandler, WindowManagementMessage_LifeCycleEvent, SettingIdPrefix} from "../base/typedefs";
 import {Setting} from "../base/setting";
 
 const EnterKeyIdent = "Enter";
@@ -54,8 +54,8 @@ export class SettingsComponent extends React.Component<SettingsComponentProperti
         ipcRenderer.on(WindowManagementMessage_LifeCycleEvent, (event, args) => {
             let settingsSelectOptions: PouchDB.Core.AllDocsWithinRangeOptions = {
                 include_docs: true,
-                startkey: "Settings.",
-                endkey: "Settings.\uffff"
+                startkey: SettingIdPrefix,
+                endkey: `${SettingIdPrefix}\uffff`
             } 
 
             this.props.db.allDocs(settingsSelectOptions).then(response => {

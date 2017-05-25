@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as PouchDB from "pouchdb-browser";
 
-import {ReactPlayerDB} from "../base/typedefs";
+import {ReactPlayerDB, SettingIdPrefix} from "../base/typedefs";
 import {Setting} from "../base/setting";
 import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
@@ -20,8 +20,8 @@ export abstract class ComponentWithSettings<P extends ComponentWithSettingsPrope
 
         var settingsSelectOptions: PouchDB.Core.AllDocsWithinRangeOptions = {
             include_docs: true,
-            startkey: `Settings.${this.constructor.name}.`,
-            endkey: `Settings.${this.constructor.name}.\uffff`
+            startkey: `${SettingIdPrefix}${this.constructor.name}.`,
+            endkey: `${SettingIdPrefix}${this.constructor.name}.\uffff`
         } 
 
         this.props.db.allDocs(settingsSelectOptions).then(response => this.loadSettings(response));

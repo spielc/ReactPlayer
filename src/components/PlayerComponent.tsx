@@ -10,7 +10,7 @@ import {ComponentWithSettings, ComponentWithSettingsProperties} from "./Componen
 import {PlayerState, DocumentType} from "../base/enums";
 import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
-import {PlayerMessageTypes_Play, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlaybackStateSetting, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_Changed, PlaylistMessage_TrackChanged, WindowManagementMessage_Define, WindowManagementMessage_Show, WindowDefinitionType, SettingsWindowName, WindowManagementMessage_RegisterHandler, WindowManagementMessage_LifeCycleEvent} from "../base/typedefs";
+import { PlayerMessageTypes_Play, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlaybackStateSetting, LibraryModeEnabledSetting, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_Changed, PlaylistMessage_TrackChanged, WindowManagementMessage_Define, WindowManagementMessage_Show, WindowDefinitionType, SettingsWindowName, WindowManagementMessage_RegisterHandler, WindowManagementMessage_LifeCycleEvent, SettingIdPrefix, PlaylistIdPrefix } from "../base/typedefs";
 import {Setting} from "../base/setting";
 import {LastFMHelper} from "../util/LastFMHelper";
 import {mod} from "../base/util";
@@ -29,8 +29,8 @@ interface WaveSurferEventParams {
         originalArgs: any[];
 }
 
-const EnableScrobblingSetting = "Settings.PlayerComponent.EnableScrobbling";
-const LastFMSessionKeySetting = "Settings.PlayerComponent.EnableLastSessionKey";
+const EnableScrobblingSetting = SettingIdPrefix + "PlayerComponent.EnableScrobbling";
+const LastFMSessionKeySetting = SettingIdPrefix + "PlayerComponent.EnableLastSessionKey";
 
 export class PlayerComponent extends ComponentWithSettings<ComponentWithSettingsProperties, PlayerComponentState> {
     
@@ -86,7 +86,6 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
     }    
 
     public componentDidMount() : void {
-        // this.tokens.push(PubSub.subscribe(PlaylistMessageType, (event: PlaylistMessageTypes, trackIdx: number) => { this.playlistEvent(event, trackIdx); }));
         ipcRenderer.sendSync(WindowManagementMessage_Define, {
             WindowId: SettingsWindowName,
             URL: `file://${__dirname}/../settings.html`,
@@ -118,8 +117,9 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
                         <div id="stop-button" title="Stop" onClick={evt=>this.stopButtonClicked(evt)}><i className="fa fa-stop"/></div>
                         <div id="next-button" title="Next" onClick={evt=>this.trackChange(evt)} className={(this.trackChangeBtnClassName(true))} ref={(r) => this.forwardBtn=r}><i className="fa fa-fast-forward"/></div>
                         <div id="mute-button" title="Toggle mute" onClick={evt=>{}}><i className="fa fa-volume-off"></i></div>
-                        <div id="volume-down-button" title="Volume Down" onClick={evt=>this.volumeChange(false)}><i className="fa fa-volume-down"/></div>
-                        <div id="volume-up-button" title="Volume Up" onClick={evt=>this.volumeChange(true)}><i className="fa fa-volume-up"/></div>
+                        <div id="volume-down-button" title="Volume Down" onClick={evt => this.volumeChange(false)}><i className="fa fa-volume-down"/></div>
+                        <div id="volume-up-button" title="Volume Up" onClick={evt => this.volumeChange(true)}><i className="fa fa-volume-up"/></div>
+                        <div id="library-button" title="Library"><i className="fa fa-book" onClick={evt => this.toggleLibraryMode(evt)} /></div>
                         <div id="settings-button" title="Settings" onClick={evt=>this.openSettingsDialog()}><i className="fa fa-cog"/></div>
                     </div>
                 </div>
@@ -161,8 +161,25 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
             this.lastFMHelper = new LastFMHelper("bef50d03aa4fa431554f3bac85147580", lastFMSessionKeySetting.Value);
     }
 
+    private toggleLibraryMode(event: React.MouseEvent<HTMLElement>): void {
+        
+        //PubSub.publish(PlaylistMessage_ToggleLibraryMode, {});
+        let color = event.currentTarget.style.color;
+        if (color == "")
+            color = "lightblue";
+        else
+            color = "";
+        event.currentTarget.style.color = color;
+        this.props.db.get(LibraryModeEnabledSetting).then(response => {
+            let setting = response as Setting<boolean>;
+            setting.Value = !setting.Value;
+            this.props.db.put(setting);
+        });
+    }
+
     private loadFiles(callback?: () => any): void {
-        this.props.db.get("All").then((response) => {
+        // TODO fetch playlist accordingly
+        this.props.db.get(`${PlaylistIdPrefix}All`).then((response) => {
             var list = response as Playlist;
             if (list != null) {
                 this.props.db.get(CurrentSongIndexSetting).then(res => {
@@ -234,7 +251,7 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
         });
     }
 
-    private playlistEvent(event: PlaylistMessageTypes, trackIdx: number): void {
+    private playlistEvent(event: PlaylistMessageTypes, data: number | string): void {
         switch(event) {
             case PlaylistMessage_TrackChanged:
                 var isPlaying = this.state.state.some(state => state == PlayerState.Playing);
@@ -249,7 +266,7 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
                 }, () => {
                     this.props.db.get(CurrentSongIndexSetting).then(res => {
                         var currentSongIndexSetting = res as Setting<number>;
-                        currentSongIndexSetting.Value = trackIdx;
+                        currentSongIndexSetting.Value = data as number;
                         this.props.db.put(currentSongIndexSetting).then(res => {
                             this.loadFiles();
                         });
@@ -263,7 +280,7 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
     }
 
     private play(): void {
-        this.props.db.get("All").then((response) => {
+        this.props.db.get(`${PlaylistIdPrefix}All`).then((response) => {
             var list = response as Playlist;
             if (list != null) {
                 this.props.db.get(list.Tracks[this.state.currentIndex]._id).then(value => {
@@ -403,7 +420,7 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
         else if (this.trackDurationHalf > 0 && ((pos > this.trackDurationHalf) || (pos > 240)))  {
             var enableScrobblingSetting = this.settings.find((setting, index, obj) => { return setting._id == EnableScrobblingSetting }) as Setting<boolean>;
             if (enableScrobblingSetting && enableScrobblingSetting.Value) { 
-                this.props.db.get("All").then((response) => {
+                this.props.db.get(`${PlaylistIdPrefix}All`).then((response) => {
                     let list = response as Playlist;
                     if (list != null) {
                         this.props.db.get(list.Tracks[this.state.currentIndex]._id).then(value => {
@@ -456,7 +473,7 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
             var insertIndex = mod((newIndex + changeValue), this.state.currentFile.length);
             var trackToInsertIndex = newIndex + changeValue;
             var promise = new Promise<string>((resolve, reject) => {
-                this.props.db.get("All").then((response) => {
+                this.props.db.get(`${PlaylistIdPrefix}All`).then((response) => {
                     var list = response as Playlist;
                     if (list != null) {
                         this.props.db.get(list.Tracks[newIndex]._id).then(value => {

@@ -8,7 +8,7 @@ import * as sha256 from "js-sha256";
 import {Track} from "../base/track";
 import {Playlist} from "../base/playlist";
 import {Setting} from "../base/setting";
-import {PlayerMessageType, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlaybackStateSetting, PlayerMessageTypes_Play, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_TrackChanged, PlaylistMessage_TrackRemoved, PlaylistMessage_Changed} from "../base/typedefs";
+import { PlayerMessageType, PlayerMessageTypes_Forward, PlayerMessageTypes_Backward, PlayerMessageTypes, ReactPlayerDB, CurrentSongIndexSetting, PlaybackStateSetting, LibraryModeEnabledSetting, PlayerMessageTypes_Play, PlaylistMessageType, PlaylistMessageTypes, PlaylistMessage_TrackChanged, PlaylistMessage_TrackRemoved, PlaylistMessage_Changed, PlaylistIdPrefix, CurrentPlaylistSetting } from "../base/typedefs";
 import {DocumentType, PlayerState} from "../base/enums";
 import {shuffle} from "../base/util";
 import {TrackComponent} from "./TrackComponent";
@@ -18,7 +18,10 @@ export interface PlaylistComponentState {
     currentPlaylist: Playlist,
     displayedColumns: string[],
     currentSongIndex: number,
-    isPlaying: boolean
+    isPlaying: boolean,
+    selectedIndizes: number[],
+    libraryModeEnabled: boolean,
+    playlists: string[]
 }
 
 type PlaylistTable = new () => Reactable.Table<Track>;
@@ -39,18 +42,18 @@ const PlaylistTableTd = Reactable.Td as PlaylistTableTd;
 type PlaylistTableTfoot = new () => Reactable.Tfoot;
 const PlaylistTableTfoot = Reactable.Tfoot as PlaylistTableTfoot;
 
-const playlistNameSetting = "Settings.PlaylistComponent.Playlistname";
-
 export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettingsProperties, PlaylistComponentState> {
     
     private tokens: any[];
     private dropZone: HTMLDivElement;
+    private playlistName: HTMLInputElement;
+    private playlistSelector: HTMLSelectElement;
 
     constructor(props: ComponentWithSettingsProperties, context?: any) {
         super(props, context);
 
         var allPlaylist: Playlist = {
-            _id: "All",
+            _id: `${PlaylistIdPrefix}All`,
             DocType: DocumentType.Playlist,
             Tracks: []
         };
@@ -59,7 +62,10 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
             currentPlaylist: allPlaylist,
             displayedColumns: ["title", "album", "artist", "actions"],
             currentSongIndex: -1,
-            isPlaying: false
+            isPlaying: false,
+            selectedIndizes: [],
+            libraryModeEnabled: false,
+            playlists: []
         }
 
         this.tokens = [];
@@ -79,15 +85,15 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
 
     protected loadSettings(response: PouchDB.Core.AllDocsResponse<Track | Playlist | Setting<any>>) {
         if (response.rows.length==0) {
-            var playlistnameSetting: Setting<string> = {
-                _id: playlistNameSetting,
+            let playlistnameSetting: Setting<string> = {
+                _id: CurrentPlaylistSetting,
                 DocType: DocumentType.Setting,
-                Value: "All",
+                Value: `${PlaylistIdPrefix}All`,
                 IsVisible: false
             };
             this.props.db.put(playlistnameSetting);
             this.settings.push(playlistnameSetting);
-            var currentSongIndexSetting: Setting<number> = {
+            let currentSongIndexSetting: Setting<number> = {
                 _id: CurrentSongIndexSetting,
                 DocType: DocumentType.Setting,
                 Value: 0,
@@ -95,26 +101,45 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
             };
             this.props.db.put(currentSongIndexSetting);
             this.settings.push(currentSongIndexSetting);
+
+            let libraryModeEnabledSetting: Setting<boolean> = {
+                _id: LibraryModeEnabledSetting,
+                DocType: DocumentType.Setting,
+                Value: false,
+                IsVisible: false
+            }
+
+            this.props.db.put(libraryModeEnabledSetting);
+            this.settings.push(libraryModeEnabledSetting);
         }
         else 
             this.settings = response.rows.map(row => row.doc).map(doc => doc as Setting<any>);
 
-        var playlistName = this.settings.find((value, index, obj) => value._id == playlistNameSetting) as Setting<string>;
+        var playlistName = this.settings.find((value, index, obj) => value._id == CurrentPlaylistSetting) as Setting<string>;
         var currentSongIndex = this.settings.find((value, index, obj) => value._id == CurrentSongIndexSetting) as Setting<number>;
 
         this.props.db.put(this.state.currentPlaylist).then((res) => {
             
         }).catch((reason) => {
-            this.props.db.get(playlistName.Value).then((response) => {
-                var list = response as Playlist;
-                if (list != null) {
-                    this.setState({
-                        currentPlaylist: list,
-                        displayedColumns: this.state.displayedColumns,
-                        currentSongIndex: currentSongIndex.Value,
-                        isPlaying: this.state.isPlaying
-                    });
-                }
+            let settingsSelectOptions: PouchDB.Core.AllDocsWithinRangeOptions = {
+                include_docs: false,
+                startkey: PlaylistIdPrefix,
+                endkey: `${PlaylistIdPrefix}\uffff`
+            }
+            this.props.db.allDocs(settingsSelectOptions).then(response => {
+                let playlists = response.rows.map(pl => pl.id);
+                this.props.db.get(playlistName.Value).then((response) => {
+                    var list = response as Playlist;
+                    if (list != null) {
+                        this.setState({
+                            currentPlaylist: list,
+                            displayedColumns: this.state.displayedColumns,
+                            currentSongIndex: currentSongIndex.Value,
+                            isPlaying: this.state.isPlaying,
+                            playlists: playlists
+                        });
+                    }
+                });
             });
         });
 
@@ -132,13 +157,15 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
                             break;
                         }
                         case DocumentType.Playlist: {
-                            var playlist = value as Playlist;
-                            this.setState({
-                                currentPlaylist: playlist,
-                                displayedColumns: this.state.displayedColumns,
-                                currentSongIndex: currentSongIndex.Value,
-                                isPlaying: this.state.isPlaying
-                            });
+                            let playlist = value as Playlist;
+                            if (this.state.playlists.indexOf(playlist._id) == -1)
+                                this.state.playlists.push(playlist._id);
+                            if (playlist._id == this.state.currentPlaylist._id) {
+                                this.setState({
+                                    currentPlaylist: playlist,
+                                    currentSongIndex: currentSongIndex.Value
+                                });
+                            }
                             break;
                         }
                         case DocumentType.Setting: {
@@ -157,6 +184,24 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
                                     let playbackStateSetting = value as Setting<PlayerState>;
                                     this.setState({
                                         isPlaying: playbackStateSetting.Value == PlayerState.Playing
+                                    });
+                                    break;
+                                case CurrentPlaylistSetting:
+                                    let currentPlaylistSetting = value as Setting<string>;
+                                    this.props.db.get(currentPlaylistSetting.Value).then(response => {
+                                        var playlist = response as Playlist;
+                                        if (playlist) {
+                                            this.setState({
+                                                currentPlaylist: playlist
+                                            });
+                                        }
+                                        
+                                    });
+                                    break;
+                                case LibraryModeEnabledSetting:
+                                    let libraryModeEnabledSetting = value as Setting<boolean>;
+                                    this.setState({
+                                        libraryModeEnabled: libraryModeEnabledSetting.Value
                                     });
                                     break;
                             }
@@ -342,6 +387,33 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
                     }
                 }
                 break;
+                // TODO this has to be done somehow else...
+            // case PlaylistMessage_ToggleTrackSelected:
+            //     let action: () => number[];
+            //     if (this.state.selectedIndizes.find(selectedIndex => selectedIndex === trackIdx) !== undefined) {
+            //         // track already selected
+            //         action = () => this.state.selectedIndizes.filter(selectedIndex => selectedIndex !== trackIdx);
+            //     }
+            //     else {
+            //         // track not already selected
+            //         action = () => this.state.selectedIndizes.concat([trackIdx]);
+            //     }
+            //     this.setState({
+            //         selectedIndizes: action()
+            //     });
+            //     break;
+            // case PlaylistMessage_ToggleLibraryMode:
+            //     this.props.db.get(`${PlaylistIdPrefix}All`).then((response) => {
+            //         var list = response as Playlist;
+            //         if (list != null) {
+            //             this.setState({
+            //                 currentPlaylist: list,
+            //                 libraryModeEnabled: !this.state.libraryModeEnabled
+            //             });
+            //         }
+            //     });
+                
+            //     break;
             // case PlaylistMessage_TrackChanged:
             //     var newIndex = this.state.currentPlaylist.Tracks.indexOf(data);
             //     var currentSongIndexSetting = this.settings.find((setting, index, arr) => setting._id == CurrentSongIndexSetting) as Setting<number>;
@@ -375,7 +447,6 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
             var file = files.item(i);
             this.handleFile(file);
             //console.log(`File '${file.name}' of type '${file.type}' dropped!`);
-            
         }
         this.dropZone.className = "hidden";
     }
@@ -397,14 +468,83 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
         this.props.db.put(this.state.currentPlaylist);
     }
 
+    private createPlaylist(): void {
+        let playlistName = PlaylistIdPrefix + this.playlistName.value;
+        if (playlistName != "") {
+            this.props.db.get(playlistName).catch(reason => {
+                // if we get here a playlist with the given name does not exist => create a new playlist in the db
+                let playlist: Playlist = {
+                    _id: playlistName,
+                    Tracks: [],
+                    DocType: DocumentType.Playlist
+                }
+                this.props.db.put(playlist).then(response => {
+                    new Notification('SUCCESS!', {
+                        body: `Playlist "${this.playlistName.value}" created successfully!`
+                    });
+                });
+            });
+        }
+    }
+
+    private switchPlaylist(): void {
+        let selectedPlaylist = this.playlistSelector.value;
+        if (this.state.currentPlaylist._id != selectedPlaylist) {
+            this.props.db.get(selectedPlaylist).then(response => {
+                let playlist = response as Playlist;
+                if (playlist) {
+                    //PubSub.publish(PlaylistMessage_Switched, this.playlistSelector.value);
+                    this.props.db.get(CurrentPlaylistSetting).then(response => {
+                        let setting = response as Setting<string>;
+                        if (setting) {
+                            setting.Value = selectedPlaylist;
+                            this.props.db.put(setting).then(response => {
+                                this.props.db.get(CurrentSongIndexSetting).then(response => {
+                                    var currentSongIndexSetting = response as Setting<number>;
+                                    currentSongIndexSetting.Value = 0;
+                                    this.props.db.put(currentSongIndexSetting).then(response => {
+                                        // this.setState({
+                                        //     currentPlaylist: playlist,
+                                        //     currentSongIndex: 0
+                                        // });
+                                    });;
+                                });
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        // let playlistName = PlaylistIdPrefix + this.playlistName.value;
+        // if (playlistName != "") {
+        //     this.props.db.get(playlistName).catch(reason => {
+        //         // if we get here a playlist with the given name does not exist => create a new playlist in the db
+        //         let playlist: Playlist = {
+        //             _id: playlistName,
+        //             Tracks: [],
+        //             DocType: DocumentType.Playlist
+        //         }
+        //         this.props.db.put(playlist).then(response => {
+        //             new Notification('SUCCESS!', {
+        //                 body: `Playlist "${this.playlistName.value}" created successfully!`
+        //             });
+        //         });
+        //     });
+        // }
+    }
+
     public componentDidMount() : void {
-        // this.tokens.push(PubSub.subscribe(PlayerMessageType, (event: PlayerMessageTypes, data: any) => { this.playerEvent(event, data); }));
-        // this.tokens.push(PubSub.subscribe(PlaylistMessageType, (event: PlaylistMessageTypes, trackIdx: number) => { this.playlistEvent(event, trackIdx); }));
         window.document.addEventListener("dragover", (event) => {
             event.stopPropagation();
             event.preventDefault();
             this.dropZone.className = "";
-        })
+        }, false);
+
+        window.document.addEventListener("drop", (event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            //this.dropZone.className = "";
+        }, false);
     }
 
     public componentWillUnmount() : void {
@@ -413,6 +553,14 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
     }
 
     public render(): JSX.Element {
+        
+        let playlists = this.state.playlists.map(playlist => <option value={playlist} selected={playlist == this.state.currentPlaylist._id}>{playlist.replace(PlaylistIdPrefix, "")}</option>);
+        /*var playlists = [];
+
+        this.props.db.allDocs(settingsSelectOptions).then(response => {
+            playlists = response.rows.map(row => (<option value={row.id}>{row.id.replace(PlaylistIdPrefix, "")}</option>));
+            let i = 0;
+        });*/
         var columns: JSX.Element[] = [];
         for(var colName of this.state.displayedColumns) {
             columns.push(
@@ -427,12 +575,19 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
             var tds: JSX.Element[] = [];
             this.state.displayedColumns.forEach(col => tds.push(
                 <PlaylistTableTd column={col}>
-                    <TrackComponent db={this.props.db} trackIdx={i} value={(col != "actions") ? track[col] : col}/>
+                    <TrackComponent db={this.props.db} trackIdx={i} value={(col != "actions") ? track[col] : col} libraryModeEnabled={this.state.libraryModeEnabled} />
                 </PlaylistTableTd>
             ));
-            if (this.state.isPlaying && (i==this.state.currentSongIndex)) {
+            if (!this.state.libraryModeEnabled && this.state.isPlaying && (i==this.state.currentSongIndex)) {
                 rows.push(
                     <PlaylistRow className="reactable-current-song">
+                        {tds}
+                    </PlaylistRow>
+                );
+            }
+            else if (this.state.selectedIndizes.find(selectedIndex => selectedIndex === i) !== undefined) {
+                rows.push(
+                    <PlaylistRow className="reactable-selected">
                         {tds}
                     </PlaylistRow>
                 );
@@ -449,7 +604,7 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
         }
         return (
             <div>
-                <div id="drop-zone" className="hidden" ref={r => this.dropZone = r} onDragLeave={evt => this.dropZoneDragLeave(evt)} onDragOver={evt => this.dropZoneDragOver(evt)} onDrop={evt => this.dropZoneDrop(evt)}>Drag &amp; Drop Files Here</div>
+                <div hidden={!this.state.libraryModeEnabled} id="drop-zone" className="hidden" ref={r => this.dropZone = r} onDragLeave={evt => this.dropZoneDragLeave(evt)} onDragOver={evt => this.dropZoneDragOver(evt)} onDrop={evt => this.dropZoneDrop(evt)}>Drag &amp; Drop Files Here</div>
                 <PlaylistTable id="demo-table">
                     <PlaylistTableHeader>
                         {columns}
@@ -457,9 +612,10 @@ export class PlaylistComponent extends ComponentWithSettings<ComponentWithSettin
                     {rows}
                     <PlaylistTableTfoot>
                         <tr className="reactable-footer">
-                            <td><div title="Create new playlist..."><i className="fa fa-file"/></div></td>
-                            <td><div title="Load persisted playlist..."><i className="fa fa-folder-open"/></div></td>
-                            <td><div title="Shuffle" onClick={(evt) => this.shuffle()}><i className="fa fa-random"/></div></td>
+                            <td><div hidden={!this.state.libraryModeEnabled} title="Create new playlist..."><input type="text" ref={r => this.playlistName = r}/>&nbsp;<i className="fa fa-file" onClick={evt => this.createPlaylist()}/></div></td>
+                            <td><div title="Load persisted playlist..."><select ref={r => this.playlistSelector = r}>{playlists}</select>&nbsp;<i className="fa fa-folder-open" onClick={evt => this.switchPlaylist()}/></div></td>
+                            <td><div hidden={this.state.libraryModeEnabled} title="Shuffle" onClick={(evt) => this.shuffle()}><i className="fa fa-random"/></div></td>
+                            <td><div><i className="fa fa-clipboard fa-lg"/><i className="fa fa-bookmark-o fa-lg"/><i className="fa fa-trash fa-lg"/></div></td>
                         </tr>
                     </PlaylistTableTfoot>
                 </PlaylistTable>

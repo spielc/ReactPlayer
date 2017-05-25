@@ -24,6 +24,10 @@
   cursor: default;
 }
 
+tr.reactable-selected {
+  background-color: lightblue;
+}
+
 tr.reactable-current-song {
   background-color: red;
   font-style: italic;

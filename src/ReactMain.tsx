@@ -5,7 +5,7 @@ import PouchDB = require("pouchdb-browser");
 import {PlayerComponent} from "./components/PlayerComponent";
 import {PlaylistComponent} from "./components/PlaylistComponent";
 
-var db = new PouchDB("ReactPlayerDB");
+var db = new PouchDB("ReactPlayerDB", {auto_compaction: true});
 
 ReactDOM.render(<PlayerComponent db={db} />, document.getElementById("player"));
 ReactDOM.render(<PlaylistComponent db={db} />, document.getElementById("playlist"));
