@@ -4,7 +4,8 @@
         "target": "es6",
         "outDir": "Output",
         "inlineSourceMap": true,
-        "jsx": "react"
+        "jsx": "react",
+        "noImplicitAny": true
     },
     "exclude": [
         "node_modules",

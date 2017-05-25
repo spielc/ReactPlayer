@@ -7,4 +7,5 @@ export interface Track extends ID3.Tag {
     _id: string;
     path: string;
     DocType: DocumentType;
+    [idx: string]: any;
 }

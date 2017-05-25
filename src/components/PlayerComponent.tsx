@@ -353,7 +353,7 @@ export class PlayerComponent extends ComponentWithSettings<ComponentWithSettings
                 BUBBLING_PHASE: 0,
                 CAPTURING_PHASE: 0,
                 scoped: false,
-                deepPath: () => new EventTarget[0],
+                deepPath: () => [],
                 altKey: false,
                 button: 0,
                 buttons: 0,

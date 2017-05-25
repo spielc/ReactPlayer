@@ -30,5 +30,5 @@ export abstract class ComponentWithSettings<P extends ComponentWithSettingsPrope
 
     }
 
-    protected abstract loadSettings(response: PouchDB.Core.AllDocsResponse<Track | Playlist | Setting<any>>);
+    protected abstract loadSettings(response: PouchDB.Core.AllDocsResponse<Track | Playlist | Setting<any>>): void;
 }
