@@ -4,11 +4,14 @@ import PouchDB = require("pouchdb-browser");
 //import {SvgContainer} from "./components/SvgContainer";
 import {PlayerComponent} from "./components/PlayerComponent";
 import {PlaylistComponent} from "./components/PlaylistComponent";
+import {AppState} from "./base/appstate";
 
 var db = new PouchDB("ReactPlayerDB", {auto_compaction: true});
 
-ReactDOM.render(<PlayerComponent db={db} />, document.getElementById("player"));
-ReactDOM.render(<PlaylistComponent db={db} />, document.getElementById("playlist"));
+var state = new AppState(db);
+
+ReactDOM.render(<PlayerComponent state={state} />, document.getElementById("player"));
+// ReactDOM.render(<PlaylistComponent db={db} />, document.getElementById("playlist"));
 
 //ReactDom.render(
 //    <SvgContainer height={100} width={100}>
