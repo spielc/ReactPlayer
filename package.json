@@ -13,27 +13,26 @@
   "author": "Christoph Spielmann",
   "license": "LGPL-3.0",
   "dependencies": {
-    "electron": "^1.6.5",
+    "electron": "^1.6.11",
     "id3-parser": "^1.2.0",
     "js-sha256": "^0.5.0",
     "md5": "^2.2.1",
-    "mobx": "^3.1.10",
-    "mobx-react": "^4.2.1",
-    "pouchdb": "^6.1.2",
-    "pouchdb-browser": "^6.1.2",
-    "react": "^15.5.4",
-    "react-dom": "^15.5.4",
+    "mobx": "^3.1.16",
+    "mobx-react": "^4.2.2",
+    "pouchdb": "^6.2.0",
+    "pouchdb-browser": "^6.2.0",
+    "react": "^15.6.1",
+    "react-dom": "^15.6.1",
     "react-wavesurfer": "^0.8.3",
     "reactable": "^0.14.1",
     "wavesurfer.js": "^1.4.0"
   },
   "devDependencies": {
-    "@types/electron": "^1.4.37",
     "@types/md5": "^2.1.32",
-    "@types/pouchdb": "^6.1.0",
-    "@types/react": "^15.0.22",
-    "@types/react-dom": "^15.5.0",
-    "@types/react-redux": "^4.4.40",
-    "rimraf": "^2.6.1"
+    "@types/pouchdb": "^6.1.1",
+    "@types/react": "^15.0.34",
+    "@types/react-dom": "^15.5.1",
+    "rimraf": "^2.6.1",
+    "typescript": "^2.4.1"
   }
 }

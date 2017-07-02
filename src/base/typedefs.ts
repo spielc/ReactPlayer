@@ -4,11 +4,11 @@ import {Playlist} from "./playlist";
 import {Setting} from "./setting";
 import {app, BrowserWindow, ipcMain} from "electron";
 
-export interface WindowDefinitionType {
-    WindowId: string,
-    URL: string,
-    Options: Electron.BrowserWindowOptions
-} //[string, string, Electron.BrowserWindowOptions];
+// export interface WindowDefinitionType {
+//     WindowId: string,
+//     URL: string,
+//     Options: Electron.BrowserWindowOptions
+// } //[string, string, Electron.BrowserWindowOptions];
 
 export interface WindowRegisterHandlerType {
     WindowId: string,
