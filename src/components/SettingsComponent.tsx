@@ -1,11 +1,14 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import * as Reactable from "reactable";
-
+import { observer } from "mobx-react";
 import {ipcRenderer} from "electron";
 
 import {ReactPlayerDB, SettingsWindowName, WindowManagementMessage_RegisterHandler, WindowManagementMessage_LifeCycleEvent, SettingIdPrefix} from "../base/typedefs";
 import {Setting} from "../base/setting";
+import { AppState } from "../base/appstate";
+
+
 
 const EnterKeyIdent = "Enter";
 
@@ -25,53 +28,46 @@ type SettingsTableTd = new () => Reactable.Td;
 const SettingsTableTd = Reactable.Td as SettingsTableTd;
 
 interface SettingsComponentProperties {
-    db: ReactPlayerDB
+    state: AppState
 }
 
-interface SettingsComponentState {
-    settings: Setting<any>[];
-}
-
-export class SettingsComponent extends React.Component<SettingsComponentProperties, SettingsComponentState> {
+@observer
+export class SettingsComponent extends React.Component<SettingsComponentProperties, {}> {
 
     constructor(props: SettingsComponentProperties, context?: any) {
-        super(props, context);
-
-        this.state = {
-            settings: []
-        };       
+        super(props, context);     
     }
 
     public componentDidMount() : void {
 
         
 
-        ipcRenderer.sendSync(WindowManagementMessage_RegisterHandler, {//windowDef);
-            WindowId: SettingsWindowName,
-            EventId: "show"
-        });
+        // ipcRenderer.sendSync(WindowManagementMessage_RegisterHandler, {//windowDef);
+        //     WindowId: SettingsWindowName,
+        //     EventId: "show"
+        // });
 
-        ipcRenderer.on(WindowManagementMessage_LifeCycleEvent, (event, args) => {
-            let settingsSelectOptions: PouchDB.Core.AllDocsWithinRangeOptions = {
-                include_docs: true,
-                startkey: SettingIdPrefix,
-                endkey: `${SettingIdPrefix}\uffff`
-            } 
+        // ipcRenderer.on(WindowManagementMessage_LifeCycleEvent, (event, args) => {
+        //     let settingsSelectOptions: PouchDB.Core.AllDocsWithinRangeOptions = {
+        //         include_docs: true,
+        //         startkey: SettingIdPrefix,
+        //         endkey: `${SettingIdPrefix}\uffff`
+        //     } 
 
-            this.props.db.allDocs(settingsSelectOptions).then(response => {
-                this.setState({
-                    settings: response.rows.map(row => row.doc).map(doc => doc as Setting<any>).filter(setting => setting.IsVisible)
-                });
+        //     this.props.db.allDocs(settingsSelectOptions).then(response => {
+        //         this.setState({
+        //             settings: response.rows.map(row => row.doc).map(doc => doc as Setting<any>).filter(setting => setting.IsVisible)
+        //         });
                 
-                console.log(`this.settings.length=${this.state.settings.length}`);
-            }); 
+        //         console.log(`this.settings.length=${this.state.settings.length}`);
+        //     }); 
             
-        });
+        // });
     }
 
     public render(): JSX.Element {
         let rows: JSX.Element[] = [];
-        for(let setting of this.state.settings) {
+        for(let setting of this.props.state.settings.filter(setting => setting.IsVisible)) {
             rows.push(
                 <SettingsTableRow>
                     <SettingsTableTd column="_id">{setting._id}</SettingsTableTd>
@@ -103,15 +99,15 @@ export class SettingsComponent extends React.Component<SettingsComponentProperti
         if (event.key === EnterKeyIdent) {
             try {
                 let inputValue = JSON.parse(event.currentTarget.value);
-                let currentSetting = this.state.settings.find(setting => setting._id == event.currentTarget.name);
+                let currentSetting = this.props.state.settings.find(setting => setting._id == event.currentTarget.name);
                 let currentValue = currentSetting.Value;
                 if ((typeof inputValue === typeof currentValue) && inputValue != currentValue) {
                     currentSetting.Value = inputValue;
-                    this.props.db.get(event.currentTarget.name).then(response => {
-                        let setting = response as Setting<any>;
-                        setting.Value = inputValue;
-                        this.props.db.put(setting);
-                    });
+                    // this.props.db.get(event.currentTarget.name).then(response => {
+                    //     let setting = response as Setting<any>;
+                    //     setting.Value = inputValue;
+                    //     this.props.db.put(setting);
+                    // });
                 }
             } catch (error) {
 

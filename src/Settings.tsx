@@ -3,7 +3,12 @@ import * as ReactDOM from "react-dom";
 import PouchDB = require("pouchdb-browser");
 
 import {SettingsComponent} from "./components/SettingsComponent";
+import { PouchDBPersistence } from "./persistency/PouchDBPersistence";
+import { AppState } from "./base/appstate";
 
-var db = new PouchDB("ReactPlayerDB");
+var db = new PouchDB("ReactPlayerDB", {auto_compaction: true});
+var persistence = new PouchDBPersistence(db);
 
-ReactDOM.render(<SettingsComponent db={db} />, document.getElementById("settings"));
+var state = new AppState(db, persistence);
+
+ReactDOM.render(<SettingsComponent state={state} />, document.getElementById("settings"));
