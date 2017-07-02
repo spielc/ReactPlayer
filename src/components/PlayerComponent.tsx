@@ -1,6 +1,6 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import {autorun} from "mobx";
+import {autorun, whyRun} from "mobx";
 import {observer} from "mobx-react";
 import WaveSurfer from "react-wavesurfer";
 import {readFile} from "fs";
@@ -47,17 +47,21 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties,{
     }    
 
     public render(): JSX.Element {
-        console.log(this.props.state);
-        return (
+
+        let style: React.CSSProperties = {
+            color: (this.props.state.libraryModeEnabled) ? "lightblue" : ""
+        }
+        
+        let blub = (
             <div>
                 <div hidden={(this.props.state.normalizedCurrentIndex) != 0}>
-                    <WaveSurfer audioFile={(this.props.state.currentFile[0].length == 0) ? new Blob() : this.props.state.currentFile[0]} playing={this.props.state.state[0]==PlayerState.Playing} pos={0} volume={this.props.state.currentVolume} onFinish={(evt)=>this.props.state.forward()} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[0]=r } } options={ {height: 30} } />
+                    <WaveSurfer audioFile={(this.props.state.currentFile[0].length == 0) ? new Blob() : this.props.state.currentFile[0]} playing={this.props.state.state[0]==PlayerState.Playing} pos={0} volume={this.props.state.currentVolume} onFinish={(evt)=>this.props.state.forward()} onPosChange={(evt)=>this.posChange(evt)} onReady={() => this.props.state.ready(0)} ref={(r) => { this.waveSurfer[0]=r } } options={ {height: 30} } />
                 </div>
                 <div hidden={(this.props.state.normalizedCurrentIndex) != 1}>
-                    <WaveSurfer audioFile={(this.props.state.currentFile[1].length == 0) ? new Blob() : this.props.state.currentFile[1]} playing={this.props.state.state[1]==PlayerState.Playing} pos={0} volume={this.props.state.currentVolume} onFinish={(evt)=>this.props.state.forward()} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[1]=r } } options={ {height: 30} } />
+                    <WaveSurfer audioFile={(this.props.state.currentFile[1].length == 0) ? new Blob() : this.props.state.currentFile[1]} playing={this.props.state.state[1]==PlayerState.Playing} pos={0} volume={this.props.state.currentVolume} onFinish={(evt)=>this.props.state.forward()} onPosChange={(evt)=>this.posChange(evt)} onReady={() => this.props.state.ready(1)} ref={(r) => { this.waveSurfer[1]=r } } options={ {height: 30} } />
                 </div>
                 <div hidden={(this.props.state.normalizedCurrentIndex) != 2}>
-                    <WaveSurfer audioFile={(this.props.state.currentFile[2].length == 0) ? new Blob() : this.props.state.currentFile[2]} playing={this.props.state.state[2]==PlayerState.Playing} pos={0} volume={this.props.state.currentVolume} onFinish={(evt)=>this.props.state.forward()} onPosChange={(evt)=>this.posChange(evt)} ref={(r) => { this.waveSurfer[2]=r } } options={ {height: 30} } />
+                    <WaveSurfer audioFile={(this.props.state.currentFile[2].length == 0) ? new Blob() : this.props.state.currentFile[2]} playing={this.props.state.state[2]==PlayerState.Playing} pos={0} volume={this.props.state.currentVolume} onFinish={(evt)=>this.props.state.forward()} onPosChange={(evt)=>this.posChange(evt)} onReady={() => this.props.state.ready(2)} ref={(r) => { this.waveSurfer[2]=r } } options={ {height: 30} } />
                 </div>
                 <div id="container" className={this.props.state.containerState}>
                     <div className="player-control">
@@ -69,12 +73,14 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties,{
                         <div id="mute-button" title="Toggle mute" onClick={evt=>this.props.state.toggleMute()}><i className="fa fa-volume-off"></i></div>
                         <div id="volume-down-button" title="Volume Down" onClick={evt => this.props.state.decreaseVolume()}><i className="fa fa-volume-down"/></div>
                         <div id="volume-up-button" title="Volume Up" onClick={evt => this.props.state.increaseVolume()}><i className="fa fa-volume-up"/></div>
-                        <div id="library-button" title="Library"><i className="fa fa-book" onClick={evt => this.toggleLibraryMode(evt)} /></div>
+                        <div id="library-button" title="Library"><i className="fa fa-book" style={style} onClick={evt => this.props.state.toggleLibraryMode()} /></div>
                         <div id="settings-button" title="Settings" onClick={evt=>this.openSettingsDialog()}><i className="fa fa-cog"/></div>
                     </div>
                 </div>
             </div>
             );
+            whyRun();
+            return blub;
     }
 
     private toggleLibraryMode(event: React.MouseEvent<HTMLElement>): void {
