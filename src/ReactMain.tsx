@@ -10,7 +10,7 @@ import { PouchDBPersistence } from "./persistency/PouchDBPersistence";
 var db = new PouchDB("ReactPlayerDB", {auto_compaction: true});
 var persistence = new PouchDBPersistence(db);
 
-var state = new AppState(db, persistence);
+var state = new AppState(persistence);
 
 ReactDOM.render(<PlayerComponent state={state} />, document.getElementById("player"));
 ReactDOM.render(<PlaylistComponent state={state} />, document.getElementById("playlist"));

@@ -9,6 +9,6 @@ import { AppState } from "./base/appstate";
 var db = new PouchDB("ReactPlayerDB", {auto_compaction: true});
 var persistence = new PouchDBPersistence(db);
 
-var state = new AppState(db, persistence);
+var state = new AppState(persistence);
 
 ReactDOM.render(<SettingsComponent state={state} />, document.getElementById("settings"));

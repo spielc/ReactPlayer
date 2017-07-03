@@ -19,7 +19,7 @@ export class AppState {
     private prevPlaylistName: string = `${PlaylistIdPrefix}All`;
     private clipboard: string[] = [];
 
-    constructor(private db: ReactPlayerDB, private persistence: Persistence) {
+    constructor(private persistence: Persistence) {
         observe(this, "currentIndex", (change: IValueDidChange<number>) => {
             this.prevCurrentIndex = change.oldValue;
         });
@@ -29,47 +29,78 @@ export class AppState {
         //     //console.log(`${change.type} : ${change.oldValue} -> ${change.newValue}`);
         // });
         persistence.init().then(res => {
-            let selectOptions: PouchDB.Core.AllDocsWithinRangeOptions = {
-                include_docs: true,
-                startkey: SettingIdPrefix,
-                endkey: `${SettingIdPrefix}\uffff`
-            } 
-
-            this.db.allDocs(selectOptions).then(response => {
-                let selectOptions: PouchDB.Core.AllDocsWithinRangeOptions = {
-                    include_docs: true,
-                    startkey: PlaylistIdPrefix,
-                    endkey: `${PlaylistIdPrefix}\uffff`
-                }
-                this.db.allDocs(selectOptions).then(res => {
-                    this.playlists = res.rows.map(row => row.doc).map(doc => doc as Playlist);
-                    observe(observable(this.playlists), change => {
-                        let arrayChange = change as IArraySplice<Playlist>;
-                        arrayChange.added.forEach(addedObj => persistence.persistPlaylist(this.createPersistablePlaylist(addedObj), "add"));
-                        arrayChange.removed.forEach(removedObj => persistence.persistPlaylist(removedObj, "remove"));
-                    });
-                    this.settings = response.rows.map(row => row.doc).map(doc => doc as Setting<any>);
-                    //this.persistence.registerObjects(this.settings);
-                    this.settings.forEach(setting => observe(setting, change => {
-                        // let setting = change.object as Setting<any>
-                        // console.log(`${setting._id}=${setting.Value}`);
-                        persistence.persistSetting(change.object, "update");
-                    }));
-                    // let currentPlaylistSetting = this.getValueFromSetting<string>(CurrentPlaylistSetting);
-                    // if (currentPlaylistSetting) {
-                    //     let playlist = this.playlists.find(plist => plist._id == currentPlaylistSetting);
-                    //     if (playlist) {
-                    //         this.playlist = observable(playlist.Tracks);
-                    //         observe(this.playlist, change => {
-                    //             let arrayChange = change as IArraySplice<Track>;
-                    //             arrayChange.added.forEach(addedObj => persistence.persistTrack(addedObj, "add"));
-                    //             arrayChange.removed.forEach(removedObj => persistence.persistTrack(removedObj, "remove"));
-                    //         });
-                    //     }
-                    // }
+            persistence.getPlaylists().then(result => {
+                this.playlists = result;
+                observe(observable(this.playlists), change => {
+                    let arrayChange = change as IArraySplice<Playlist>;
+                    arrayChange.added.forEach(addedObj => persistence.persistPlaylist(this.createPersistablePlaylist(addedObj), "add"));
+                    arrayChange.removed.forEach(removedObj => persistence.persistPlaylist(removedObj, "remove"));
                 });
-            });
-        });
+            },
+            reason => console.log(reason));
+            persistence.getSettings().then(result => {
+                this.settings = result;
+                observe(observable(this.settings), change => {
+                    let arrayChange = change as IArraySplice<Setting<any>>;
+                    arrayChange.added.forEach(addedObj => persistence.persistSetting(addedObj, "add"));
+                    arrayChange.removed.forEach(removedObj => persistence.persistSetting(removedObj, "remove"));
+                });
+                this.settings.forEach(setting => observe(setting, change => {
+                    // let setting = change.object as Setting<any>
+                    // console.log(`${setting._id}=${setting.Value}`);
+                    persistence.persistSetting(change.object, "update");
+                }));
+            },
+            reason => console.log(reason));
+        })
+
+        // persistence.init().then(res => {
+        //     let selectOptions: PouchDB.Core.AllDocsWithinRangeOptions = {
+        //         include_docs: true,
+        //         startkey: SettingIdPrefix,
+        //         endkey: `${SettingIdPrefix}\uffff`
+        //     } 
+
+        //     this.db.allDocs(selectOptions).then(response => {
+        //         let selectOptions: PouchDB.Core.AllDocsWithinRangeOptions = {
+        //             include_docs: true,
+        //             startkey: PlaylistIdPrefix,
+        //             endkey: `${PlaylistIdPrefix}\uffff`
+        //         }
+        //         this.db.allDocs(selectOptions).then(res => {
+        //             this.playlists = res.rows.map(row => row.doc).map(doc => doc as Playlist);
+        //             observe(observable(this.playlists), change => {
+        //                 let arrayChange = change as IArraySplice<Playlist>;
+        //                 arrayChange.added.forEach(addedObj => persistence.persistPlaylist(this.createPersistablePlaylist(addedObj), "add"));
+        //                 arrayChange.removed.forEach(removedObj => persistence.persistPlaylist(removedObj, "remove"));
+        //             });
+        //             this.settings = response.rows.map(row => row.doc).map(doc => doc as Setting<any>);
+        //             observe(observable(this.settings), change => {
+        //                 let arrayChange = change as IArraySplice<Setting<any>>;
+        //                 arrayChange.added.forEach(addedObj => persistence.persistSetting(addedObj, "add"));
+        //                 arrayChange.removed.forEach(removedObj => persistence.persistSetting(removedObj, "remove"));
+        //             });
+        //             //this.persistence.registerObjects(this.settings);
+        //             this.settings.forEach(setting => observe(setting, change => {
+        //                 // let setting = change.object as Setting<any>
+        //                 // console.log(`${setting._id}=${setting.Value}`);
+        //                 persistence.persistSetting(change.object, "update");
+        //             }));
+        //             // let currentPlaylistSetting = this.getValueFromSetting<string>(CurrentPlaylistSetting);
+        //             // if (currentPlaylistSetting) {
+        //             //     let playlist = this.playlists.find(plist => plist._id == currentPlaylistSetting);
+        //             //     if (playlist) {
+        //             //         this.playlist = observable(playlist.Tracks);
+        //             //         observe(this.playlist, change => {
+        //             //             let arrayChange = change as IArraySplice<Track>;
+        //             //             arrayChange.added.forEach(addedObj => persistence.persistTrack(addedObj, "add"));
+        //             //             arrayChange.removed.forEach(removedObj => persistence.persistTrack(removedObj, "remove"));
+        //             //         });
+        //             //     }
+        //             // }
+        //         });
+        //     });
+        // });
 
  
     }

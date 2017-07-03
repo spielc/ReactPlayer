@@ -9,4 +9,6 @@ export interface Persistence {
     persistSetting(setting: Setting<any>, type: ChangeType): void;
     persistTrack(track: Track, type: ChangeType): void;
     persistPlaylist(playlist: Playlist, type: ChangeType): void;
+    getPlaylists(): Promise<Playlist[]>;
+    getSettings(): Promise<Setting<any>[]>;
 }

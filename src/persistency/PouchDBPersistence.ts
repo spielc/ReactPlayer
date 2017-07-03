@@ -5,12 +5,12 @@ import { Setting } from "../base/setting";
 import { Track } from "../base/track";
 import { Playlist } from "../base/playlist";
 import { DocumentType } from "../base/enums";
-import { ReactPlayerDB, CurrentPlaylistSetting, PlaylistIdPrefix, CurrentSongIndexSetting } from "../base/typedefs";
+import { ReactPlayerDB, CurrentPlaylistSetting, PlaylistIdPrefix, CurrentSongIndexSetting, SettingIdPrefix } from "../base/typedefs";
 
 type PersistedObject = Setting<any> | Track | Playlist;
 
 export class PouchDBPersistence implements Persistence {
-
+    
     private prevPromise: Promise<any>;
     
     constructor(private db: ReactPlayerDB) {
@@ -50,7 +50,7 @@ export class PouchDBPersistence implements Persistence {
         return promise;
     }
 
-    private persist(obj: PersistedObject, type: ChangeType) {
+    private persist(obj: PersistedObject, type: ChangeType): void {
         this.prevPromise = this.prevPromise.then(() => new Promise((resolve, reject) => {
             console.log(`${type}: ${obj._id}`) ;
             switch(type) {
@@ -103,6 +103,30 @@ export class PouchDBPersistence implements Persistence {
     }
     persistPlaylist(playlist: Playlist, type: ChangeType): void {
         this.persist(playlist, type);
+    }
+
+    getPlaylists(): Promise<Playlist[]> {
+        return new Promise<Playlist[]>((resolve, reject) => {
+            let selectOptions: PouchDB.Core.AllDocsWithinRangeOptions = {
+                include_docs: true,
+                startkey: PlaylistIdPrefix,
+                endkey: `${PlaylistIdPrefix}\uffff`
+            };
+            this.db.allDocs(selectOptions).then(result => resolve(result.rows.map(row => row.doc).map(doc => doc as Playlist)),
+            reason => reject(reason));
+        });
+    }
+    
+    getSettings(): Promise<Setting<any>[]> {
+        return new Promise<Setting<any>[]>((resolve, reject) => {
+            let selectOptions: PouchDB.Core.AllDocsWithinRangeOptions = {
+                include_docs: true,
+                startkey: SettingIdPrefix,
+                endkey: `${SettingIdPrefix}\uffff`
+            };
+            this.db.allDocs(selectOptions).then(result => resolve(result.rows.map(row => row.doc).map(doc => doc as Setting<any>)),
+            reason => reject(reason));
+        });
     }
 
 }

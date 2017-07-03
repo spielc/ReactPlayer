@@ -52,7 +52,7 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties,{
             color: (this.props.state.libraryModeEnabled) ? "lightblue" : ""
         }
         
-        let blub = (
+        return (
             <div>
                 <div hidden={(this.props.state.normalizedCurrentIndex) != 0}>
                     <WaveSurfer audioFile={(this.props.state.currentFile[0].length == 0) ? new Blob() : this.props.state.currentFile[0]} playing={this.props.state.state[0]==PlayerState.Playing} pos={0} volume={this.props.state.currentVolume} onFinish={(evt)=>this.props.state.forward()} onPosChange={(evt)=>this.posChange(evt)} onReady={() => this.props.state.ready(0)} ref={(r) => { this.waveSurfer[0]=r } } options={ {height: 30} } />
@@ -78,9 +78,7 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties,{
                     </div>
                 </div>
             </div>
-            );
-            whyRun();
-            return blub;
+        );
     }
 
     private toggleLibraryMode(event: React.MouseEvent<HTMLElement>): void {
@@ -121,11 +119,42 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties,{
         else if (this.trackDurationHalf > 0 && ((pos > this.trackDurationHalf) || (pos > 240)))  {
             if (this.props.state.settings.length > 0) {
                 let enableScrobblingSetting = this.props.state.settings.find((setting, index, obj) => { return setting._id == EnableScrobblingSetting }) as Setting<boolean>;
-                if (enableScrobblingSetting && enableScrobblingSetting.Value) {
-                    let playlist = this.props.state.playlist;
-                    if (playlist) {
-                        // TODO finish this
+                if (enableScrobblingSetting) {
+                    if (enableScrobblingSetting.Value) {
+                        if (!this.lastFMHelper) {
+                            let lastFMSessionKeySetting = this.props.state.settings.find(setting => setting._id == LastFMSessionKeySetting) as Setting<string>;
+                            if (lastFMSessionKeySetting.Value !== "")
+                                this.lastFMHelper = new LastFMHelper("bef50d03aa4fa431554f3bac85147580", lastFMSessionKeySetting.Value);
+                        }
+                        
+                        let currentSongIndexSetting = this.props.state.settings.find(setting => setting._id == CurrentSongIndexSetting) as Setting<number>;
+                        let track = this.props.state.playlist[currentSongIndexSetting.Value];
+                        let map = new Map<string,string>();
+                        map.set("album", track.album);
+                        map.set("artist", track.artist);
+                        map.set("method", "track.scrobble");
+                        map.set("timestamp", this.trackStartPlaybackTimestamp.toString());
+                        map.set("track", track.title);
+                        if (this.lastFMHelper)
+                            this.lastFMHelper.startRequest(map, true);
+                        this.trackDurationHalf = -1;
                     }
+                }
+                else {
+                    let enableScrobblingSetting: Setting<boolean> = {
+                        _id: EnableScrobblingSetting,
+                        Value: false,
+                        DocType: DocumentType.Setting,
+                        IsVisible: true
+                    };
+                    this.props.state.settings.push(enableScrobblingSetting);
+                    let lastFMSessionKeySetting: Setting<string> = {
+                        _id: LastFMSessionKeySetting,
+                        Value: "",
+                        DocType: DocumentType.Setting,
+                        IsVisible: true
+                    };
+                    this.props.state.settings.push(lastFMSessionKeySetting);
                 }
             }
             // var enableScrobblingSetting = this.settings.find((setting, index, obj) => { return setting._id == EnableScrobblingSetting }) as Setting<boolean>;
