@@ -105,6 +105,8 @@ export class AppState {
  
     }
 
+    filterText: string = "";
+
     @observable
     selection: string[] = [];
 
@@ -332,7 +334,10 @@ export class AppState {
 
     @action
     public clearPlaylist(): void {
-        this.playlist.clear();
+        if (this.filterText === "")
+            this.playlist.clear();
+        else 
+            this.applyFilteredOperation(idx => this.removeTrack(idx));
     }
 
     @action
@@ -376,8 +381,12 @@ export class AppState {
 
     @action
     public selectAll(): void {
-        for(let i = 0;i < this.playlist.length;i++)
-            this.select(i);
+        if (this.filterText === "") {
+            for(let i = 0;i < this.playlist.length;i++)
+                this.select(i);
+        }
+        else
+            this.applyFilteredOperation(idx => this.select(idx));
     }
 
     @action
@@ -457,6 +466,22 @@ export class AppState {
             Tracks: newPlaylist
         }
         return persistablePlaylist;
+    }
+
+    private applyFilteredOperation(op: (idx: number) => void): void {
+        let filter = this.filterText.toLowerCase();
+            let filteredProps = ["i","title", "album", "artist", "actions"];
+            let tracks = this.playlist.filter(track => {
+                return filteredProps.some(prop => {
+                    let value = track[prop] as string;
+                    if (value) {
+                        value = value.toLowerCase();
+                        return (value.indexOf(filter) > -1);
+                    }
+                    return false;
+                })
+            });
+            tracks.map(track => this.playlist.indexOf(track)).reverse().forEach(idx => op(idx));
     }
 
 }

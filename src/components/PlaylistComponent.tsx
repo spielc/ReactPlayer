@@ -61,7 +61,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
     constructor(props: PlaylistComponentProperties, context?: any) {
         super(props, context);
 
-        this.displayedColumns = ["title", "album", "artist", "actions"];
+        this.displayedColumns = ["i","title", "album", "artist", "actions"];
         // var allPlaylist: Playlist = {
         //     _id: `${PlaylistIdPrefix}All`,
         //     DocType: DocumentType.Playlist,
@@ -575,76 +575,29 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
     }
 
     public render(): JSX.Element {
-        // if (this.props.state.playlist.length === 0){
-        // // if (this.props.state.playlist === undefined || this.props.state.playlist.Tracks.length === 0){
-        //     return <div/>
-        // }
         let playlists = this.props.state.playlistNames.map(playlist => <option value={playlist}>{playlist.replace(PlaylistIdPrefix, "")}</option>);
-        /*var playlists = [];
 
-        this.props.db.allDocs(settingsSelectOptions).then(response => {
-            playlists = response.rows.map(row => (<option value={row.id}>{row.id.replace(PlaylistIdPrefix, "")}</option>));
-            let i = 0;
-        });*/
         let dropZone = <div />;
         if (this.props.state.libraryModeEnabled) {
             dropZone = <div hidden={false} id="drop-zone" className="hidden" ref={r => this.dropZone = r} onDragLeave={evt => this.dropZoneDragLeave(evt)} onDragOver={evt => this.dropZoneDragOver(evt)} onDrop={evt => this.dropZoneDrop(evt)}>Drag &amp; Drop Files Here</div>;
         }
 
-        let columns: JSX.Element[] = [];
-        for(var colName of this.displayedColumns) {
-            columns.push(
-                <PlaylistTableTh column={colName} key={colName}>
-                    <strong className="name-header">{colName}</strong>
-                </PlaylistTableTh>
-            );
-        }
-        var rows: JSX.Element[] = [];
-        var i = 0;
-        // for(var track of this.props.state.playlist.Tracks) {
-        for (let track of this.props.state.playlist) {
-            var tds: JSX.Element[] = [];
-            this.displayedColumns.forEach(col => tds.push(
-                <PlaylistTableTd column={col}>
-                    <TrackComponent state={this.props.state} trackIdx={i} value={(col != "actions") ? track[col] : col} libraryModeEnabled={false} />
-                </PlaylistTableTd>
-            ));
-            // if (!this.state.libraryModeEnabled && this.state.isPlaying && (i==this.state.currentSongIndex)) {
-            if((this.props.state.isPlaying) && (i==this.props.state.currentIndex)) {
-                rows.push(
-                    <PlaylistRow className="reactable-current-song">
-                        {tds}
-                    </PlaylistRow>
-                );
-            }
-            else if (this.props.state.selection.indexOf(track._id) !== -1) {
-                rows.push(
-                    <PlaylistRow className="reactable-selected">
-                        {tds}
-                    </PlaylistRow>
-                );
-            }
-            else {
-                rows.push(
-                    <PlaylistRow>
-                        {tds}
-                    </PlaylistRow>
-                );
-            }
-            
-            i++;
-        }
-        // 
+        let data = this.props.state.playlist.map(track => {
+            let index = this.props.state.playlist.indexOf(track);
+            let isSelected = this.props.state.selection.find(sel => sel === track._id) !== undefined;
+            return { 
+                ...track,
+                actions:  <div><i className="fa fa-play fa-lg" onClick={evt => this.props.state.play(index)}/> <i className="fa fa-bookmark-o fa-lg" onClick={evt => this.props.state.select(index)}/> <i className="fa fa-trash fa-lg" onClick={evt => this.props.state.removeTrack(index)}/></div>,
+                i: <div hidden={(!isSelected && (!this.props.state.isPlaying || index != this.props.state.currentIndex))}><i className="fa fa-play fa-lg" style={{ color: (isSelected) ? "lightblue" : "red" }}/></div>
+            };
+        });
         return (
             <div>
                 {dropZone}
-                <PlaylistTable id="demo-table">
-                    <PlaylistTableHeader>
-                        {columns}
-                    </PlaylistTableHeader>
-                    {rows}
+                <PlaylistTable id="demo-table" columns={this.displayedColumns} filterable={this.displayedColumns} data={data} filterBy={this.props.state.filterText} onFilter={value => this.props.state.filterText = value}>
                     <PlaylistTableTfoot>
                         <tr className="reactable-footer">
+                            <td/>
                             <td><div title="Load persisted playlist..."><select ref={r => this.playlistSelector = r}>{playlists}</select>&nbsp;<i className="fa fa-folder-open" onClick={evt => this.props.state.switchPlaylist(this.playlistSelector.value)}/></div></td>
                             <td><div hidden={false} title="Create new playlist..."><input type="text" ref={r => this.playlistName = r}/>&nbsp;<i className="fa fa-file" onClick={evt => this.props.state.addPlaylist(this.playlistName.value)}/></div></td>
                             <td><div hidden={false} title="Shuffle" onClick={(evt) => this.props.state.shufflePlaylist()}><i className="fa fa-random"/></div></td>
