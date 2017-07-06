@@ -56,15 +56,12 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
     private playlistName: HTMLInputElement;
     private playlistSelector: HTMLSelectElement;
     private displayedColumns: string[];
-    private filterText: string;
 
     // constructor(props: ComponentWithSettingsProperties, context?: any) {
     constructor(props: PlaylistComponentProperties, context?: any) {
         super(props, context);
 
         this.displayedColumns = ["i","title", "album", "artist", "actions"];
-        // TODO this has to be moved to the AppState class in order to enable the wanted selection behaviour
-        this.filterText = "";
         // var allPlaylist: Playlist = {
         //     _id: `${PlaylistIdPrefix}All`,
         //     DocType: DocumentType.Playlist,
@@ -597,7 +594,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
         return (
             <div>
                 {dropZone}
-                <PlaylistTable id="demo-table" columns={this.displayedColumns} filterable={this.displayedColumns} data={data} filterBy={this.filterText} onFilter={value => this.filterText = value}>
+                <PlaylistTable id="demo-table" columns={this.displayedColumns} filterable={this.displayedColumns} data={data} filterBy={this.props.state.filterText} onFilter={value => this.props.state.filterText = value}>
                     <PlaylistTableTfoot>
                         <tr className="reactable-footer">
                             <td/>
