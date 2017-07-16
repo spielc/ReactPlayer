@@ -12,6 +12,10 @@
   },
   "author": "Christoph Spielmann",
   "license": "LGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/spielc/ReactPlayer"
+  },
   "dependencies": {
     "electron": "^1.6.11",
     "id3-parser": "^1.2.0",
