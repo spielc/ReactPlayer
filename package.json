@@ -36,6 +36,7 @@
     "@types/pouchdb": "^6.1.1",
     "@types/react": "^15.0.34",
     "@types/react-dom": "^15.5.1",
+    "@types/reactable": "^0.14.0",
     "rimraf": "^2.6.1",
     "typescript": "^2.4.1"
   }
