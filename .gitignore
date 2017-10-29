@@ -63,7 +63,6 @@ SharpSetup*.resources
 .DS_Store
 ~$*
 !node_modules/@types/react-wavesurfer
-!node_modules/@types/reactable
 !node_modules/@types/id3-parser
 !node_modules/@types/js-sha256
 *.js
