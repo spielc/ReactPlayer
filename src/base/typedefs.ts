@@ -50,4 +50,5 @@ export const PlaylistIdPrefix = "Playlist.";
 export const CurrentSongIndexSetting = SettingIdPrefix + "PlaylistComponent.CurrentSongIndex";
 export const CurrentPlaylistSetting = SettingIdPrefix + "PlaylistComponent.Playlistname";
 export const LibraryModeEnabledSetting = SettingIdPrefix + "PlaylistComponent.LibraryModeEnabled";
+export const FollowModeEnabledSetting = SettingIdPrefix + "PlaylistComponent.FollowModeEnabled";
 export const PlaybackStateSetting = SettingIdPrefix + "PlayerComponent.PlaybackState";

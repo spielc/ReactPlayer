@@ -51,6 +51,8 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties,{
         let style: React.CSSProperties = {
             color: (this.props.state.libraryModeEnabled) ? "lightblue" : ""
         }
+
+        
         
         return (
             <div>
@@ -73,7 +75,8 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties,{
                         <div id="mute-button" title="Toggle mute" onClick={evt=>this.props.state.toggleMute()}><i className="fa fa-volume-off"></i></div>
                         <div id="volume-down-button" title="Volume Down" onClick={evt => this.props.state.decreaseVolume()}><i className="fa fa-volume-down"/></div>
                         <div id="volume-up-button" title="Volume Up" onClick={evt => this.props.state.increaseVolume()}><i className="fa fa-volume-up"/></div>
-                        <div id="library-button" title="Library"><i className="fa fa-book" style={style} onClick={evt => this.props.state.toggleLibraryMode()} /></div>
+                        <div id="library-button" title="Library"><i className="fa fa-book" style={{ color: (this.props.state.libraryModeEnabled) ? "lightblue" : ""}} onClick={evt => this.props.state.toggleLibraryMode()} /></div>
+                        <div id="follow-button" title="Follow"><strong style={{ color: (this.props.state.followModeEnabled) ? "lightblue" : ""}} onClick={evt => this.props.state.toggleFollowMode()}>F</strong></div>
                         <div id="settings-button" title="Settings" onClick={evt=>this.openSettingsDialog()}><i className="fa fa-cog"/></div>
                     </div>
                 </div>

@@ -3,7 +3,7 @@ import * as ID3 from "id3-parser";
 
 import {Playlist} from "./playlist";
 import {Setting} from "./setting";
-import { ReactPlayerDB, TrackIdPrefix, SettingIdPrefix, CurrentPlaylistSetting, PlaylistIdPrefix, CurrentSongIndexSetting, LibraryModeEnabledSetting } from "./typedefs";
+import { ReactPlayerDB, TrackIdPrefix, SettingIdPrefix, CurrentPlaylistSetting, PlaylistIdPrefix, CurrentSongIndexSetting, LibraryModeEnabledSetting, FollowModeEnabledSetting } from "./typedefs";
 import { PlayerState, DocumentType } from "./enums";
 import { mod, shuffle } from "./util";
 import { Track } from "./track";
@@ -152,6 +152,12 @@ export class AppState {
     get libraryModeEnabled(): boolean {
         let value = this.getValueFromSetting<boolean>(LibraryModeEnabledSetting);
         return (value === undefined) ? false : value;
+    }
+
+    @computed
+    get followModeEnabled(): boolean {
+        let value = this.getValueFromSetting<boolean>(FollowModeEnabledSetting);
+        return (value === undefined) ? true : value;
     }
 
     @computed
@@ -318,6 +324,12 @@ export class AppState {
             this.state.fill(PlayerState.Loaded);
             this.currentFiles.fill("");
         }
+    }
+
+    @action
+    public toggleFollowMode(): void {
+        let libraryModeSetting = this.getValueFromSetting<boolean>(FollowModeEnabledSetting, true);
+        this.setSettingValue(FollowModeEnabledSetting, !libraryModeSetting);
     }
 
     @action

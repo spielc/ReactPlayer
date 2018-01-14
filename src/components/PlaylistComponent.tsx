@@ -1,6 +1,6 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import * as Reactable from "reactable";
+import ReactTable from "react-table";
 import { observer } from "mobx-react";
 
 import {Track} from "../base/track";
@@ -18,24 +18,6 @@ interface PlaylistComponentProperties {
     state: AppState
 }
 
-type PlaylistTable = new () => Reactable.Table<Track>;
-const PlaylistTable = Reactable.Table as PlaylistTable;
-
-type PlaylistTableHeader = new () => Reactable.Thead;
-const PlaylistTableHeader = Reactable.Thead as PlaylistTableHeader;
-
-type PlaylistTableTh = new () => Reactable.Th;
-const PlaylistTableTh = Reactable.Th as PlaylistTableTh;
-
-type PlaylistRow = new () => Reactable.Tr<Track>;
-const PlaylistRow = Reactable.Tr as PlaylistRow;
-
-type PlaylistTableTd = new () => Reactable.Td;
-const PlaylistTableTd = Reactable.Td as PlaylistTableTd;
-
-type PlaylistTableTfoot = new () => Reactable.Tfoot;
-const PlaylistTableTfoot = Reactable.Tfoot as PlaylistTableTfoot;
-
 @observer
 export class PlaylistComponent extends React.Component<PlaylistComponentProperties> {
     
@@ -44,11 +26,14 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
     private playlistName: HTMLInputElement;
     private playlistSelector: HTMLSelectElement;
     private displayedColumns: string[];
+    private playlistTable: ReactTable;
+    private pageSize: number;
 
     constructor(props: PlaylistComponentProperties, context?: any) {
         super(props, context);
 
         this.displayedColumns = ["indicator","title", "album", "artist", "actions"];
+        this.pageSize = -1;
     }
 
     private dropZoneDrop(event: React.DragEvent<HTMLDivElement>): void {
@@ -58,17 +43,6 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
         for (var i=0;i<files.length;i++) {
             var file = files.item(i);
             this.props.state.addTrack(file);
-            // this.handleFile(file);
-            // var reader = new FileReader();
-            // reader.onload = (event) => {
-            //     var fileReader=event.target as FileReader;
-            //     var data = fileReader.result as ArrayBuffer;
-            //     var dataBuffer = new Uint8Array(data);
-            //     this.props.state.addTrack(file.path, dataBuffer);
-            // };
-            // reader.readAsArrayBuffer(file);
-            
-            //console.log(`File '${file.name}' of type '${file.type}' dropped!`);
         }
         this.dropZone.className = "hidden";
     }
@@ -83,6 +57,19 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
         event.stopPropagation();
 	    event.preventDefault();
 	    this.dropZone.className = "hidden";
+    }
+
+    private currentPage(): number {
+        if (this.playlistTable) {
+            if (this.pageSize<0) {
+                this.pageSize = this.playlistTable.props.defaultPageSize;
+            }
+            let currentPage = Math.trunc(this.props.state.currentIndex / this.pageSize);
+            if (currentPage<0)
+                currentPage = 0;
+            return currentPage;
+        }
+        return 0;
     }
 
     public componentDidMount() : void {
@@ -123,40 +110,62 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
             };
         });
 
-        let columns: JSX.Element[] = [];
-        for(var colName of this.displayedColumns) {
-            let col = <PlaylistTableTh column={colName} key={colName}>
-                        <strong className="name-header">{colName}</strong>
-                      </PlaylistTableTh>;
-            if (colName === "indicator") {
-                col = <PlaylistTableTh column="indicator" key="indicator">
-                        <strong className="name-header"><i className="fa fa-play fa-lg"/></strong>
-                      </PlaylistTableTh>;
+        let cols = this.displayedColumns.map(col => {
+            let retValue = {
+                Header: col,
+                accessor: col,
+                width: screen.availWidth / this.displayedColumns.length,
+                filterable: true
+            };
+            if (col === 'indicator') {
+                let actRetValue = {
+                    ...retValue,
+                    Cell: (props: any) => {
+                        let isSelected = this.props.state.selection.find(sel => sel === this.props.state.playlist[props.index]._id) !== undefined;
+                        return <div hidden={(!isSelected && (!this.props.state.isPlaying || props.index != this.props.state.currentIndex))}><i className="fa fa-play fa-lg" style={{ color: (isSelected) ? "lightblue" : "red" }}/></div>
+                    }
+                }
+                actRetValue.Header = '';
+                actRetValue.width = 30;
+                actRetValue.filterable = false;
+                return actRetValue;
             }
-            else if (colName === "actions") {
-                col = <PlaylistTableTh column="actions" key="actions">
-                        <strong className="name-header">actions</strong>
-                      </PlaylistTableTh>;
+            else if (col === 'actions') {
+                let actRetValue = {
+                    ...retValue,
+                    Cell: (props: any) => <div><i className='fa fa-play fa-lg' onClick={evt => this.props.state.play(props.index)}/> <i className='fa fa-bookmark-o fa-lg' onClick={evt => this.props.state.select(props.index)}/> <i className='fa fa-trash fa-lg' onClick={evt => this.props.state.removeTrack(props.index)}/></div>,
+                    Footer: <div><i className='fa fa-clipboard fa-lg' onClick={evt => this.props.state.copyPaste()}/><i className='fa fa-bookmark-o fa-lg' onClick={evt => this.props.state.selectAll()}/><i className='fa fa-trash fa-lg' onClick={evt => this.props.state.clearPlaylist()}/></div>
+                }
+                actRetValue.width = 100;
+                actRetValue.filterable = false;
+                return actRetValue;
             }
-            columns.push(col);
-        }
+            else {
+                switch (col) {
+                    case 'title':
+                        return {
+                            ...retValue,
+                            Footer: <div title='Load persisted playlist...'><select ref={r => this.playlistSelector = r}>{playlists}</select>&nbsp;<i className='fa fa-folder-open' onClick={evt => this.props.state.switchPlaylist(this.playlistSelector.value)}/></div>
+                        }
+                    case 'album':
+                        return {
+                            ...retValue,
+                            Footer: <div hidden={false} title='Create new playlist...'><input type='text' ref={r => this.playlistName = r}/>&nbsp;<i className='fa fa-file' onClick={evt => this.props.state.addPlaylist(this.playlistName.value)}/></div>
+                        }
+                    case 'artist':
+                        return {
+                            ...retValue,
+                            Footer: <div hidden={false} title='Shuffle' onClick={(evt) => this.props.state.shufflePlaylist()}><i className='fa fa-random'/></div>
+                        }
+                }
+            }
+            return retValue;
+        });
+
         return (
             <div>
                 {dropZone}
-                <PlaylistTable id="demo-table" columns={this.displayedColumns} filterable={this.displayedColumns} data={data} filterBy={this.props.state.filterText} onFilter={value => this.props.state.filterText = value}>
-                    <PlaylistTableHeader>
-                        {columns}
-                    </PlaylistTableHeader>
-                    <PlaylistTableTfoot>
-                        <tr className="reactable-footer">
-                            <td/>
-                            <td><div title="Load persisted playlist..."><select ref={r => this.playlistSelector = r}>{playlists}</select>&nbsp;<i className="fa fa-folder-open" onClick={evt => this.props.state.switchPlaylist(this.playlistSelector.value)}/></div></td>
-                            <td><div hidden={false} title="Create new playlist..."><input type="text" ref={r => this.playlistName = r}/>&nbsp;<i className="fa fa-file" onClick={evt => this.props.state.addPlaylist(this.playlistName.value)}/></div></td>
-                            <td><div hidden={false} title="Shuffle" onClick={(evt) => this.props.state.shufflePlaylist()}><i className="fa fa-random"/></div></td>
-                            <td><div><i className="fa fa-clipboard fa-lg" onClick={evt => this.props.state.copyPaste()}/><i className="fa fa-bookmark-o fa-lg" onClick={evt => this.props.state.selectAll()}/><i className="fa fa-trash fa-lg" onClick={evt => this.props.state.clearPlaylist()}/></div></td>
-                        </tr>
-                    </PlaylistTableTfoot>
-                </PlaylistTable>
+                <ReactTable data={this.props.state.playlist} columns={cols} ref={r => this.playlistTable = r} page={(this.props.state.followModeEnabled) ? this.currentPage() : undefined} onPageSizeChange={(pageSize, pageIndex) => this.pageSize = pageSize}/>;
             </div>
         );
     }

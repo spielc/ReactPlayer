@@ -6,7 +6,8 @@
         "inlineSourceMap": true,
         "jsx": "react",
         "noImplicitAny": true,
-        "experimentalDecorators": true
+        "experimentalDecorators": true,
+        "allowSyntheticDefaultImports": true
     },
     "exclude": [
         "node_modules",
