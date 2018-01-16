@@ -67,10 +67,10 @@ export class PouchDBPersistence implements Persistence {
                             });
                         }
                         else {
-                            this.db.remove({...obj, _rev: doc._rev}).then(res => {
+                            this.db.remove(doc).then((res: any) => {
                                 resolve();
                             },
-                            error => {
+                            (error: any) => {
                                 console.log(`Deleting from the db FAILED: ${error}`);
                                 reject();
                             });

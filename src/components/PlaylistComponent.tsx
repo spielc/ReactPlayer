@@ -89,7 +89,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
 
     public componentWillUnmount() : void {
         // this.tokens.forEach(token => PubSub.unsubscribe(token));
-        window.document.removeEventListener("dragover");
+        // window.document.removeEventListener("dragover");
     }
 
     public render(): JSX.Element {
