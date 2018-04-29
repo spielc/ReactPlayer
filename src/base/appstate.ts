@@ -1,4 +1,4 @@
-import { observable, computed, autorun, observe, IValueDidChange, action, IArrayChange, IArraySplice, IObjectChange, IObservableArray } from "mobx"
+import { observable, computed, autorun, observe, IValueDidChange, action, IArrayChange, IArraySplice, IObjectChange, IObservableArray, runInAction } from "mobx"
 import * as ID3 from "id3-parser";
 
 import {Playlist} from "./playlist";
@@ -286,7 +286,39 @@ export class AppState {
             var fileReader=event.target as FileReader;
             var data = fileReader.result as ArrayBuffer;
             var dataBuffer = new Uint8Array(data);
-            ID3.parse(dataBuffer).then(action("addTrack-action", (tag: ID3.Tag) => {
+            // ID3.parse(dataBuffer).then(action("addTrack-action", (tag: ID3.Tag) => {
+            //     let track: Track = {
+            //         ...tag,
+            //         _id: `${TrackIdPrefix}${tag.title}_${tag.artist}_${tag.album}`,
+            //         path: filePath,
+            //         DocType: DocumentType.Track
+            //     };
+            //     if (!this.playlist.some(t => t._id === track._id)) {
+            //         // TODO persist track in db
+            //         this.playlist.push(track);
+            //         // let library = this.playlists.find(plist => plist._id === `${PlaylistIdPrefix}All`);
+            //         // library.Tracks = this.playlist;
+            //     }
+            // }));
+            // ID3.parse(dataBuffer).then(tag => {
+            //     let track: Track = {
+            //         ...tag,
+            //         _id: `${TrackIdPrefix}${tag.title}_${tag.artist}_${tag.album}`,
+            //         path: filePath,
+            //         DocType: DocumentType.Track
+            //     };
+            //     if (!this.playlist.some(t => t._id === track._id)) {
+            //         // TODO persist track in db
+            //         runInAction(() => {
+            //             this.playlist.push(track);
+            //         });
+                    
+            //         // let library = this.playlists.find(plist => plist._id === `${PlaylistIdPrefix}All`);
+            //         // library.Tracks = this.playlist;
+            //     }
+            // })
+            let tag = ID3.parse(dataBuffer);
+            if (tag) {
                 let track: Track = {
                     ...tag,
                     _id: `${TrackIdPrefix}${tag.title}_${tag.artist}_${tag.album}`,
@@ -295,11 +327,14 @@ export class AppState {
                 };
                 if (!this.playlist.some(t => t._id === track._id)) {
                     // TODO persist track in db
-                    this.playlist.push(track);
+                    runInAction(() => {
+                        this.playlist.push(track);
+                    });
+                    
                     // let library = this.playlists.find(plist => plist._id === `${PlaylistIdPrefix}All`);
                     // library.Tracks = this.playlist;
                 }
-            }));
+            }
         };
         reader.readAsArrayBuffer(file);
         
