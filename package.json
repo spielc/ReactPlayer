@@ -17,12 +17,12 @@
     "url": "git+https://github.com/spielc/ReactPlayer"
   },
   "dependencies": {
-    "electron": "^1.7.10",
+    "electron": "^2.0.1",
     "id3-parser": "^2.0.0",
     "js-sha256": "^0.9.0",
     "md5": "^2.2.1",
-    "mobx": "^3.4.1",
-    "mobx-react": "^4.3.5",
+    "mobx": "^4.2.0",
+    "mobx-react": "^5.0.0",
     "pouchdb": "^6.4.1",
     "pouchdb-browser": "^6.4.1",
     "react": "^16.2.0",

@@ -1,11 +1,11 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import {autorun, whyRun} from "mobx";
+import {autorun} from "mobx";
 import {observer} from "mobx-react";
 import WaveSurfer from "react-wavesurfer";
 import {readFile} from "fs";
 import {request, RequestOptions} from "http";
-import md5 = require("md5");
+import md5 from "md5";
 const {BrowserWindow} = require("electron").remote;
 
 import {ComponentWithSettings, ComponentWithSettingsProperties} from "./ComponentWithSettings";
