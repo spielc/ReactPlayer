@@ -105,7 +105,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
             let isSelected = this.props.state.selection.find(sel => sel === track._id) !== undefined;
             return { 
                 ...track,
-                actions:  <div><i className="fa fa-play fa-lg" onClick={evt => this.props.state.play(index)}/> <i className="fa fa-bookmark-o fa-lg" onClick={evt => this.props.state.select(index)}/> <i className="fa fa-trash fa-lg" onClick={evt => this.props.state.removeTrack(index)}/></div>,
+                actions:  <div><i className="fa fa-play fa-lg" onClick={evt => this.props.state.play(index)}/> <i className="fa fa-bookmark fa-lg" onClick={evt => this.props.state.select(index)}/> <i className="fa fa-trash fa-lg" onClick={evt => this.props.state.removeTrack(index)}/></div>,
                 indicator: <div hidden={(!isSelected && (!this.props.state.isPlaying || index != this.props.state.currentIndex))}><i className="fa fa-play fa-lg" style={{ color: (isSelected) ? "lightblue" : "red" }}/></div>
             };
         });
@@ -133,8 +133,8 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
             else if (col === 'actions') {
                 let actRetValue = {
                     ...retValue,
-                    Cell: (props: any) => <div><i className='fa fa-play fa-lg' onClick={evt => this.props.state.play(props.index)}/> <i className='fa fa-bookmark-o fa-lg' onClick={evt => this.props.state.select(props.index)}/> <i className='fa fa-trash fa-lg' onClick={evt => this.props.state.removeTrack(props.index)}/></div>,
-                    Footer: <div><i className='fa fa-clipboard fa-lg' onClick={evt => this.props.state.copyPaste()}/><i className='fa fa-bookmark-o fa-lg' onClick={evt => this.props.state.selectAll()}/><i className='fa fa-trash fa-lg' onClick={evt => this.props.state.clearPlaylist()}/></div>
+                    Cell: (props: any) => <div><i className='fa fa-play fa-lg' onClick={evt => this.props.state.play(props.index)}/> <i className='fa fa-bookmark fa-lg' onClick={evt => this.props.state.select(props.index)}/> <i className='fa fa-trash fa-lg' onClick={evt => this.props.state.removeTrack(props.index)}/></div>,
+                    Footer: <div><i className='fa fa-clipboard fa-lg' onClick={evt => this.props.state.copyPaste()}/><i className='fa fa-bookmark fa-lg' onClick={evt => this.props.state.selectAll()}/><i className='fa fa-trash fa-lg' onClick={evt => this.props.state.clearPlaylist()}/></div>
                 }
                 actRetValue.width = 100;
                 actRetValue.filterable = false;
