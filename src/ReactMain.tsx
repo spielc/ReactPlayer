@@ -6,8 +6,11 @@ import {PlayerComponent} from "./components/PlayerComponent";
 import {PlaylistComponent} from "./components/PlaylistComponent";
 import {AppState} from "./base/appstate";
 import { PouchDBPersistence } from "./persistency/PouchDBPersistence";
+import { Track } from "./base/track";
+import { Playlist } from "./base/playlist";
+import { Setting } from "./base/setting";
 
-var db = new PouchDB("ReactPlayerDB", {auto_compaction: true});
+var db = new PouchDB<Track | Playlist | Setting<any>>("ReactPlayerDB", {auto_compaction: true});
 var persistence = new PouchDBPersistence(db);
 
 var state = new AppState(persistence);

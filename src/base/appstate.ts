@@ -1,9 +1,9 @@
-import { observable, computed, autorun, observe, IValueDidChange, action, IArrayChange, IArraySplice, IObservableArray, runInAction } from "mobx"
+import { observable, computed, observe, IValueDidChange, action, IArraySplice, IObservableArray, runInAction } from "mobx"
 import * as ID3 from "id3-parser";
 
 import {Playlist} from "./playlist";
 import {Setting} from "./setting";
-import { ReactPlayerDB, TrackIdPrefix, SettingIdPrefix, CurrentPlaylistSetting, PlaylistIdPrefix, CurrentSongIndexSetting, LibraryModeEnabledSetting, FollowModeEnabledSetting } from "./typedefs";
+import { TrackIdPrefix, CurrentPlaylistSetting, PlaylistIdPrefix, CurrentSongIndexSetting, LibraryModeEnabledSetting, FollowModeEnabledSetting } from "./typedefs";
 import { PlayerState, DocumentType } from "./enums";
 import { mod, shuffle } from "./util";
 import { Track } from "./track";
@@ -28,7 +28,7 @@ export class AppState {
         //     let i = 0;
         //     //console.log(`${change.type} : ${change.oldValue} -> ${change.newValue}`);
         // });
-        persistence.init().then(res => {
+        persistence.init().then(() => {
             persistence.getPlaylists().then(result => {
                 this.playlists = result;
                 observe(observable(this.playlists), change => {
@@ -36,8 +36,7 @@ export class AppState {
                     arrayChange.added.forEach(addedObj => persistence.persistPlaylist(this.createPersistablePlaylist(addedObj), "add"));
                     arrayChange.removed.forEach(removedObj => persistence.persistPlaylist(removedObj, "remove"));
                 });
-            },
-            reason => console.log(reason));
+            }, reason => console.log(reason));
             persistence.getSettings().then(result => {
                 this.settings = result;
                 observe(observable(this.settings), change => {
@@ -50,8 +49,7 @@ export class AppState {
                     // console.log(`${setting._id}=${setting.Value}`);
                     persistence.persistSetting(change.object, "update");
                 }));
-            },
-            reason => console.log(reason));
+            }, reason => console.log(reason));
         })
 
         // persistence.init().then(res => {
@@ -221,10 +219,6 @@ export class AppState {
             // this.changePlayerState(PlayerState.Paused);
             // this.trackChange(1, newIndex);
             this.setSettingValue(CurrentSongIndexSetting, newIndex);
-            // TODO update this.state here
-            let readyIndex = mod((newIndex - 1), WaveSurferCount);
-            let playIndex = mod(newIndex, WaveSurferCount);
-            let insertIndex = mod(newIndex + 1, WaveSurferCount);
             this.state.fill(PlayerState.Loaded);
         }
         else
@@ -352,10 +346,6 @@ export class AppState {
             // this.trackChange(1, newIndex);
             let newIndex = currentSongIndex - 1;
             this.setSettingValue(CurrentSongIndexSetting, newIndex);
-            // TODO update this.state here
-            let readyIndex = mod((newIndex - 1), WaveSurferCount);
-            let playIndex = mod(newIndex, WaveSurferCount);
-            let insertIndex = mod(newIndex + 1, WaveSurferCount);
             this.state.fill(PlayerState.Loaded);
             this.currentFiles.fill("");
         }
