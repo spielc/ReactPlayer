@@ -26,7 +26,7 @@ export class PlaylistComponent extends React.Component<PlaylistComponentProperti
     private playlistName: HTMLInputElement;
     private playlistSelector: HTMLSelectElement;
     private displayedColumns: string[];
-    private playlistTable: ReactTable;
+    private playlistTable: ReactTable<Track>;
     private pageSize: number;
 
     constructor(props: PlaylistComponentProperties, context?: any) {
