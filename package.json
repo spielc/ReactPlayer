@@ -17,11 +17,11 @@
     "url": "git+https://github.com/spielc/ReactPlayer"
   },
   "dependencies": {
-    "electron": "^4.0.7",
+    "electron": "^8.2.5",
     "id3-parser": "^2.0.0",
     "md5": "^2.2.1",
-    "mobx": "^5.9.0",
-    "mobx-react": "^5.4.3",
+    "mobx": "^5.14.0",
+    "mobx-react": "^6.1.4",
     "pouchdb": "^7.0.0",
     "pouchdb-browser": "^7.0.0",
     "react": "^16.8.4",
@@ -37,6 +37,6 @@
     "@types/react-table": "^6.7.13",
     "@types/wavesurfer.js": "^2.0.1",
     "rimraf": "^2.6.2",
-    "typescript": "^3.3.3333"
+    "typescript": "^3.7.5"
   }
 }
