@@ -1,7 +1,7 @@
 import * as React from "react";
 import {observer} from "mobx-react";
 import * as WaveSurfer from "wavesurfer.js";
-const {BrowserWindow} = require("electron").remote;
+const {BrowserWindow} = require("electron");
 
 import {PlayerState, DocumentType} from "../base/enums";
 import {AppState} from "../base/appstate";
