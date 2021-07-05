@@ -42,10 +42,10 @@ export class PouchDBPersistence implements Persistence {
                     DocType: DocumentType.Playlist
                 }
                 data.push(library);
-                this.db.bulkDocs(data).then(result => resolve());
+                this.db.bulkDocs(data).then(result => resolve({}));
             }
             else
-                resolve();
+                resolve({});
         }));
         return promise;
     }
@@ -59,7 +59,7 @@ export class PouchDBPersistence implements Persistence {
                     this.db.get(obj._id).then(doc => {
                         if (type === "update") {
                             this.db.put({...obj, _rev: doc._rev}).then(res => {
-                                resolve();
+                                resolve({});
                             },
                             error => {
                                 console.log(`Updating the db FAILED: ${error}`);
@@ -68,7 +68,7 @@ export class PouchDBPersistence implements Persistence {
                         }
                         else {
                             this.db.remove(doc).then((res: any) => {
-                                resolve();
+                                resolve({});
                             },
                             (error: any) => {
                                 console.log(`Deleting from the db FAILED: ${error}`);
@@ -80,7 +80,7 @@ export class PouchDBPersistence implements Persistence {
                     break;
                 case "add":
                     this.db.put(obj).then(res => {
-                        resolve();
+                        resolve({});
                     },
                     error => {
                         console.log(`Updating the db FAILED: ${error}`);

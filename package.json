@@ -17,26 +17,28 @@
     "url": "git+https://github.com/spielc/ReactPlayer"
   },
   "dependencies": {
-    "electron": "^10.1.1",
+    "electron": "^13.1.4",
     "id3-parser": "^2.0.0",
-    "md5": "^2.2.1",
+    "md5": "^2.3.0",
     "mobx": "^5.14.0",
     "mobx-react": "^6.1.4",
-    "pouchdb": "^7.0.0",
-    "pouchdb-browser": "^7.0.0",
-    "react": "^16.8.4",
-    "react-dom": "^16.8.4",
+    "pouchdb": "^7.2.2",
+    "pouchdb-browser": "^7.2.2",
+    "prop-types": "^15.7.2",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
     "react-table": "^6.9.2",
-    "wavesurfer.js": "^3.3.3"
+    "wavesurfer.js": "^5.1.0"
   },
   "devDependencies": {
-    "@types/md5": "^2.1.33",
-    "@types/pouchdb": "^6.3.2",
-    "@types/react": "^16.8.6",
-    "@types/react-dom": "^16.8.2",
+    "@types/md5": "^2.3.0",
+    "@types/node": "^15.12.5",
+    "@types/pouchdb": "^6.4.0",
+    "@types/react": "^17.0.13",
+    "@types/react-dom": "^17.0.8",
     "@types/react-table": "^6.7.13",
-    "@types/wavesurfer.js": "^3.3.0",
+    "@types/wavesurfer.js": "^5.1.0",
     "rimraf": "^3.0.2",
-    "typescript": "^3.9.3"
+    "typescript": "^4.3.5"
   }
 }
