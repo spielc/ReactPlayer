@@ -61,9 +61,11 @@ export class PlayerComponent extends React.Component<PlayerComponentProperties,{
             for (let i=0;i<this.waveSurfer.length;i++) {
                 this.waveSurfer[i].setVolume(this.props.state.currentVolume);
                 this.waveSurfer[i].pause();
+                if (this.props.state.currentFile[i].length === 0)
+                    continue;
                 switch(this.props.state.state[i]) {
                 case PlayerState.Loaded:
-                    this.waveSurfer[i].load((this.props.state.currentFile[i].length === 0) ? "" : this.props.state.currentFile[i]);             
+                    this.waveSurfer[i].load(this.props.state.currentFile[i]);
                     break;
                 case PlayerState.Playing:
                     this.waveSurfer[i].play();
