@@ -17,7 +17,7 @@
     "url": "git+https://github.com/spielc/ReactPlayer"
   },
   "dependencies": {
-    "electron": "^13.1.4",
+    "electron": "^15.5.5",
     "id3-parser": "^2.0.0",
     "md5": "^2.3.0",
     "mobx": "^5.14.0",
